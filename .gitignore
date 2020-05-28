@@ -1,0 +1,6 @@
+output
+.vscode
+node_modules
+*.bundle
+run.*
+out
