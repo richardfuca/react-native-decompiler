@@ -2,7 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2017",
+    "target": "ES2019",
     "noImplicitAny": true,
     "strict": true,
     "strictNullChecks": true,
@@ -20,6 +20,7 @@
   ],
   "exclude": [
     "node_modules",
+    "output",
     "**/*.spec.ts",
     "**/*.js",
   ]
