@@ -19,7 +19,7 @@
     "typescript": "^3.3.3333"
   },
   "devDependencies": {
-    "@babel/types": "^7.10.1",
+    "@babel/types": "^7.10.2",
     "@types/babel__generator": "^7.6.1",
     "@types/babylon": "^6.16.5",
     "@types/command-line-args": "^5.0.0",
