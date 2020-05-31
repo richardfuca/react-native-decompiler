@@ -2,7 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2019",
+    "target": "ES2020",
     "noImplicitAny": true,
     "strict": true,
     "strictNullChecks": true,
@@ -22,6 +22,6 @@
     "node_modules",
     "output",
     "**/*.spec.ts",
-    "**/*.js",
+    "**/*.js"
   ]
 }
