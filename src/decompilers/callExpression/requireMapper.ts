@@ -19,5 +19,12 @@ export default class RequireMapper extends Decompiler<CallExpression> {
     path.node.arguments[0] = parseExpression(moduleDependency.isNpmModule ?
       `'${moduleDependency.moduleName}'` :
       `'./${moduleDependency.moduleName}'`);
+    if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {
+      const parent = path.parent;
+      if (parent.type !== 'VariableDeclarator') return;
+      if (parent.id.type !== 'Identifier') return;
+
+      path.scope.rename(parent.id.name, moduleDependency.npmModuleVarName);
+    }
   }
 }

@@ -1,9 +1,12 @@
 import { NodePath } from '@babel/traverse';
-import { CallExpression, Identifier, NumericLiteral, BlockStatement } from '@babel/types';
+import generator from '@babel/generator';
+import { CallExpression, Identifier, NumericLiteral, BlockStatement, File } from '@babel/types';
 
 export default class Module {
   readonly path: NodePath<CallExpression>;
+  readonly originalCode: string;
   readonly moduleCode: BlockStatement;
+  readonly moduleCodeStrings: string[] = [];
 
   readonly moduleId: number;
 
@@ -18,13 +21,17 @@ export default class Module {
   // modifiable fields
   /** The name of the module */
   moduleName: string;
+  /** The variable to use if this is an NPM module */
+  npmModuleVarName?: string;
   /** If this is a NPM module */
   isNpmModule: boolean = false;
   /** If the module should not be decompiled nor outputted */
   ignored: boolean = false;
 
-  constructor(path: NodePath<CallExpression>) {
+  constructor(path: NodePath<CallExpression>, originalFile: File) {
     this.path = path;
+
+    this.originalCode = generator({ ...originalFile.program, type: 'Program', body: [path.getStatementParent().node] }, { compact: true }).code;
 
     const moduleCode = path.node.arguments[0];
     if (moduleCode.type !== 'FunctionExpression') throw new SyntaxError(`Param 1 of __d should be a function but got ${moduleCode.type}`);
@@ -48,5 +55,11 @@ export default class Module {
     this.moduleObjParam = <Identifier>moduleCodeParams[moduleCodeParams.length === 7 ? 4 : 2];
     this.exportsParam = <Identifier>moduleCodeParams[moduleCodeParams.length === 7 ? 5 : 3];
     this.dependencyMapParam = <Identifier>moduleCodeParams[moduleCodeParams.length === 7 ? 6 : 4];
+
+    this.path.traverse({
+      StringLiteral: (path) => {
+        this.moduleCodeStrings.push(path.node.value);
+      },
+    });
   }
 }

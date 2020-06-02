@@ -10,6 +10,10 @@ export default class DecompilerRouter<T extends Node> {
   }
 
   parse = (path: NodePath<T>) => {
-    this.list.filter(decompiler => decompiler.actionable(path)).forEach(decompiler => decompiler.decompile(path));
+    this.list.forEach((decompiler) => {
+      if (decompiler.actionable(path)) {
+        decompiler.decompile(path);
+      }
+    });
   }
 }

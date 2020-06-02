@@ -4,6 +4,7 @@ import { CallExpression } from '@babel/types';
 
 export default class PassthroughModuleRemapper extends Tagger {
   evaluate(path: NodePath<CallExpression>): void {
+    if (this.module.moduleCode.body.length !== 1) return;
     path.traverse({
       AssignmentExpression: (path) => {
         if (path.node.left?.type !== 'MemberExpression') return path.stop();
@@ -17,6 +18,7 @@ export default class PassthroughModuleRemapper extends Tagger {
         if (path.node.right.arguments[0].type !== 'MemberExpression') return path.stop();
 
         const passthroughDependency = this.moduleList[this.module.dependencies[path.node.right?.arguments[0].property.value]];
+        this.module.ignored = true;
         this.moduleList.forEach((module) => {
           module.dependencies = module.dependencies.map(dep => dep === this.module.moduleId ? passthroughDependency.moduleId : dep);
         });
