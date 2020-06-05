@@ -1,6 +1,7 @@
 import Module from '../module';
-import { BlockStatement } from '@babel/types';
+import { CallExpression } from '@babel/types';
 import { Editor, EditorConstructor } from './editor';
+import { NodePath } from '@babel/traverse';
 
 export default class EditorRouter {
   private readonly list: Editor[];
@@ -8,7 +9,7 @@ export default class EditorRouter {
     this.list = list.map(tagger => new tagger(module, moduleList));
   }
 
-  parse = (block: BlockStatement) => {
-    this.list.forEach(tagger => tagger.evaluate(block));
+  parse = (path: NodePath<CallExpression>) => {
+    this.list.forEach(tagger => tagger.evaluate(path));
   }
 }

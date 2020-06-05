@@ -27,6 +27,7 @@ export default class Module {
   isNpmModule: boolean = false;
   /** If the module should not be decompiled nor outputted */
   ignored: boolean = false;
+  tags: string[] = [];
 
   constructor(path: NodePath<CallExpression>, originalFile: File) {
     this.path = path;

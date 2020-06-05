@@ -4,7 +4,7 @@ import { Decompiler } from '../decompiler';
 
 export default class GlobalsRenamer extends Decompiler<Identifier> {
   actionable(path: NodePath<Identifier>): boolean {
-    return path?.scope?.bindings?.[path.node.name]?.identifier?.start === this.module.globalsParam.start;
+    return path?.scope.getBindingIdentifier(path.node.name)?.start === this.module.globalsParam.start;
   }
 
   decompile(path: NodePath<Identifier>): void {

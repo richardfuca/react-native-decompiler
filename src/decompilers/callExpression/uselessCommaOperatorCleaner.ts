@@ -1,16 +1,15 @@
 import assert from 'assert';
 import { NodePath } from '@babel/traverse';
-import { CallExpression } from '@babel/types';
+import { CallExpression, isSequenceExpression, isNumericLiteral } from '@babel/types';
 import { Decompiler } from '../decompiler';
 
 export default class UselessCommaOperatorCleaner extends Decompiler<CallExpression> {
   actionable(path: NodePath<CallExpression>): boolean {
-    return path.node.callee.type === 'SequenceExpression' && path.node.callee.expressions.length === 2 &&
-      path.node.callee.expressions[0].type === 'NumericLiteral';
+    return isSequenceExpression(path.node.callee) && path.node.callee.expressions.length === 2 && isNumericLiteral(path.node.callee.expressions[0]);
   }
 
   decompile(path: NodePath<CallExpression>): void {
-    assert(path.node.callee.type === 'SequenceExpression');
+    assert(isSequenceExpression(path.node.callee));
     path.node.callee = path.node.callee.expressions[1];
   }
 }

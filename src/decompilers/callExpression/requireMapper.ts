@@ -1,30 +1,25 @@
 import assert from 'assert';
 import { NodePath } from '@babel/traverse';
-import { CallExpression } from '@babel/types';
+import { CallExpression, isIdentifier, isMemberExpression, stringLiteral, isVariableDeclarator } from '@babel/types';
 import { Decompiler } from '../decompiler';
-import { parseExpression } from '@babel/parser';
 
 export default class RequireMapper extends Decompiler<CallExpression> {
   actionable(path: NodePath<CallExpression>): boolean {
-    return path.node.callee.type === 'Identifier' && path.scope.bindings[path.node.callee.name] != null &&
-      path.scope.bindings[path.node.callee.name].identifier?.start === this.module.requireParam.start;
+    return isIdentifier(path.node.callee) && path.scope.getBindingIdentifier(path.node.callee.name)?.start === this.module.requireParam.start;
   }
 
   decompile(path: NodePath<CallExpression>): void {
-    assert(path.node.callee.type === 'Identifier');
-    assert(path.node.arguments[0].type === 'MemberExpression');
+    assert(isIdentifier(path.node.callee));
+    assert(isMemberExpression(path.node.arguments[0]));
 
     path.node.callee.name = 'require';
     const moduleDependency = this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]];
-    path.node.arguments[0] = parseExpression(moduleDependency.isNpmModule ?
-      `'${moduleDependency.moduleName}'` :
-      `'./${moduleDependency.moduleName}'`);
+    path.node.arguments[0] = stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`);
     if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {
-      const parent = path.parent;
-      if (parent.type !== 'VariableDeclarator') return;
-      if (parent.id.type !== 'Identifier') return;
+      if (!isVariableDeclarator(path.parent)) return;
+      if (!isIdentifier(path.parent.id)) return;
 
-      path.scope.rename(parent.id.name, moduleDependency.npmModuleVarName);
+      path.scope.rename(path.parent.id.name, moduleDependency.npmModuleVarName);
     }
   }
 }

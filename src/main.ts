@@ -14,6 +14,7 @@ import CliProgress from 'cli-progress';
 import crypto from 'crypto';
 import EditorRouter from './editors/editorRouter';
 import editorList from './editors/editorList';
+import unaryExpressionDecompilersList from './decompilers/unaryExpression/unaryExpressionDecompilersList';
 
 const argValues = commandLineArgs<{ in: string, out: string, entry: number }>([
   { name: 'in', alias: 'i' },
@@ -96,20 +97,19 @@ console.log('Decompiling...');
 progressBar.start(nonIgnoredModules.length, 0);
 nonIgnoredModules.forEach((module) => {
   const editorRouter = new EditorRouter(editorList, module, modules);
-  editorRouter.parse(module.moduleCode);
-  module.path.traverse({
-    BlockStatement: path => editorRouter.parse(path.node),
-  });
+  editorRouter.parse(module.path);
 
   const decompilerRouters = {
     AssignmentExpression: new DecompilerRouter(assignmentExpressionDecompilersList, module, modules),
     CallExpression: new DecompilerRouter(callExpressionDecompilersList, module, modules),
     Identifier: new DecompilerRouter(identiferDecompilersList, module, modules),
+    UnaryExpression: new DecompilerRouter(unaryExpressionDecompilersList, module, modules),
   };
   module.path.traverse({
     AssignmentExpression: decompilerRouters.AssignmentExpression.parse,
     CallExpression: decompilerRouters.CallExpression.parse,
     Identifier: decompilerRouters.Identifier.parse,
+    UnaryExpression: decompilerRouters.UnaryExpression.parse,
   });
 
   progressBar.increment();

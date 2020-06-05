@@ -1,5 +1,6 @@
 import Module from '../module';
-import { BlockStatement } from '@babel/types';
+import { CallExpression } from '@babel/types';
+import { NodePath } from '@babel/traverse';
 
 export interface EditorConstructor {
   new(module: Module, moduleList: Module[]): Editor;
@@ -14,5 +15,5 @@ export abstract class Editor {
     this.moduleList = moduleList;
   }
 
-  abstract evaluate(block: BlockStatement): void;
+  abstract evaluate(block: NodePath<CallExpression>): void;
 }

@@ -4,7 +4,7 @@ import { Decompiler } from '../decompiler';
 
 export default class ExportsRenamer extends Decompiler<Identifier> {
   actionable(path: NodePath<Identifier>): boolean {
-    return path?.scope?.bindings?.[path.node.name]?.identifier?.start === this.module.exportsParam.start;
+    return path?.scope.getBindingIdentifier(path.node.name)?.start === this.module.exportsParam.start;
   }
 
   decompile(path: NodePath<Identifier>): void {
