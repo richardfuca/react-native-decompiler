@@ -17,7 +17,7 @@
     "patch-package": "^6.0.5",
     "tslint": "^5.14.0",
     "tslint-config-airbnb": "^5.11.1",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.9.5"
   },
   "devDependencies": {
     "@babel/types": "^7.10.2",
