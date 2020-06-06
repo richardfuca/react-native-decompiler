@@ -11,6 +11,7 @@ export default class BabelModuleFinder extends ModuleFinder {
     const requireDefaultRegex = /.\.exports=function\(.\){return .&&.\.__esModule\?.:{default:.};};/;
     if (requireDefaultRegex.test(this.module.originalCode)) {
       this.tagAsNpmModule('@babel/runtime/helpers/interopRequireDefault');
+      return;
     }
   }
 }

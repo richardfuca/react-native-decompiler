@@ -1,13 +1,13 @@
-import { EditorConstructor } from './editor';
 import VarSplitter from './variables/varSplitter';
 import RequiresAtTop from './variables/requiresAtTop';
 import CommaOperatorUnwrapper from './unwrappers/commaOperatorUnwrapper';
 import EsModuleCleaner from './cleaners/esModuleCleaner';
+import { PluginConstructor } from '../plugin';
 
-const editorList: EditorConstructor[] = [
+const editorList: PluginConstructor[] = [
   VarSplitter,
-  RequiresAtTop,
   CommaOperatorUnwrapper,
+  RequiresAtTop,
   EsModuleCleaner,
 ];
 

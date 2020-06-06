@@ -1,29 +1,28 @@
 import fsExtra from 'fs-extra';
+import { performance } from 'perf_hooks';
 import * as babylon from '@babel/parser';
 import traverse from '@babel/traverse';
 import generator from '@babel/generator';
 import commandLineArgs from 'command-line-args';
 import Module from './module';
-import DecompilerRouter from './decompilers/decompilerRouter';
 import taggerList from './taggers/taggerList';
-import TaggerRouter from './taggers/taggerRouter';
-import assignmentExpressionDecompilersList from './decompilers/assignmentExpression/assignmentExpressionDecompilersList';
-import callExpressionDecompilersList from './decompilers/callExpression/callExpressionDecompilersList';
-import identiferDecompilersList from './decompilers/identifer/identiferDecompilersList';
 import CliProgress from 'cli-progress';
 import crypto from 'crypto';
-import EditorRouter from './editors/editorRouter';
 import editorList from './editors/editorList';
-import unaryExpressionDecompilersList from './decompilers/unaryExpression/unaryExpressionDecompilersList';
+import { isIdentifier } from '@babel/types';
+import Router from './router';
+import decompilerList from './decompilers/decompilerList';
 
-const argValues = commandLineArgs<{ in: string, out: string, entry: number }>([
+const argValues = commandLineArgs<{ in: string, out: string, entry: number, performance: boolean }>([
   { name: 'in', alias: 'i' },
   { name: 'out', alias: 'o' },
   { name: 'entry', alias: 'e', type: Number },
+  { name: 'performance', alias: 'p', type: Boolean },
 ]);
 
 fsExtra.ensureDirSync(argValues.out);
 
+let startTime = performance.now();
 console.log('Reading file...');
 let jsFile = fsExtra.readFileSync(argValues.in, 'utf8');
 if (argValues.entry && fsExtra.existsSync(`${argValues.out}/${argValues.entry}.cache`)) {
@@ -37,15 +36,19 @@ if (argValues.entry && fsExtra.existsSync(`${argValues.out}/${argValues.entry}.c
   }
 }
 
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Parsing JS...');
 const originalFile = babylon.parse(jsFile);
 
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Reading modules...');
 const modules: Module[] = [];
 traverse(originalFile, {
   // tslint:disable-next-line:function-name
   CallExpression(path) {
-    if (path.node.callee.type === 'Identifier' && path.node.callee.name === '__d') {
+    if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
       const module = new Module(path, originalFile);
       modules[module.moduleId] = module;
       path.skip();
@@ -80,12 +83,14 @@ if (argValues.entry != null) {
   }
 }
 
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Tagging...');
 const progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
 progressBar.start(modulesToTag.length, 0);
 modulesToTag.forEach((module) => {
-  const router = new TaggerRouter(taggerList, module, modules);
-  router.parse(module.path);
+  const router = new Router(taggerList, module, modules, argValues.performance);
+  router.parse(module);
 
   progressBar.increment();
 });
@@ -93,29 +98,33 @@ modulesToTag.forEach((module) => {
 const nonIgnoredModules = modulesToTag.filter(module => !module.ignored);
 
 progressBar.stop();
+if (argValues.performance) {
+  console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
+  console.log(Router.timeTaken);
+  Router.timeTaken = {};
+  Router.traverseTimeTaken = 0;
+}
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Decompiling...');
 progressBar.start(nonIgnoredModules.length, 0);
 nonIgnoredModules.forEach((module) => {
-  const editorRouter = new EditorRouter(editorList, module, modules);
-  editorRouter.parse(module.path);
+  const editorRouter = new Router(editorList, module, modules, argValues.performance);
+  editorRouter.parse(module);
 
-  const decompilerRouters = {
-    AssignmentExpression: new DecompilerRouter(assignmentExpressionDecompilersList, module, modules),
-    CallExpression: new DecompilerRouter(callExpressionDecompilersList, module, modules),
-    Identifier: new DecompilerRouter(identiferDecompilersList, module, modules),
-    UnaryExpression: new DecompilerRouter(unaryExpressionDecompilersList, module, modules),
-  };
-  module.path.traverse({
-    AssignmentExpression: decompilerRouters.AssignmentExpression.parse,
-    CallExpression: decompilerRouters.CallExpression.parse,
-    Identifier: decompilerRouters.Identifier.parse,
-    UnaryExpression: decompilerRouters.UnaryExpression.parse,
-  });
+  const decompilerRouter = new Router(decompilerList, module, modules, argValues.performance);
+  decompilerRouter.parse(module);
 
   progressBar.increment();
 });
 
 progressBar.stop();
+if (argValues.performance) {
+  console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
+  console.log(Router.timeTaken);
+}
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Generating code...');
 progressBar.start(nonIgnoredModules.length, 0);
 const generatedFiles = nonIgnoredModules.map((module) => {
@@ -132,6 +141,8 @@ const generatedFiles = nonIgnoredModules.map((module) => {
 });
 
 progressBar.stop();
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Saving...');
 progressBar.start(nonIgnoredModules.length, 0);
 generatedFiles.map((file) => {
@@ -143,4 +154,6 @@ generatedFiles.map((file) => {
 });
 
 progressBar.stop();
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Done!');

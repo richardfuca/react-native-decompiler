@@ -1,8 +1,10 @@
-import { Tagger } from '../tagger';
 import { NodePath } from '@babel/traverse';
 import { CallExpression } from '@babel/types';
+import { Plugin } from '../../plugin';
 
-export default abstract class ModuleFinder extends Tagger {
+export default abstract class ModuleFinder extends Plugin {
+  readonly pass = 1;
+
   protected tagAsNpmModule(moduleName: string, varName?: string) {
     if (this.module.isNpmModule) {
       throw new Error(`Module #${this.module.moduleId} is already the ${this.module.moduleName} module but tried to re-tag as ${moduleName}`);
