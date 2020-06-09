@@ -24,15 +24,19 @@ export default class Module {
   /** The variable to use if this is an NPM module */
   npmModuleVarName?: string;
   /** If this is a NPM module */
-  isNpmModule: boolean = false;
+  isNpmModule = false;
   /** If the module should not be decompiled nor outputted */
-  ignored: boolean = false;
+  ignored = false;
   tags: string[] = [];
 
-  constructor(path: NodePath<CallExpression>, originalFile: File) {
+  constructor(path: NodePath<CallExpression>, originalFile: File, cachedCode?: string) {
     this.path = path;
 
-    this.originalCode = generator({ ...originalFile.program, type: 'Program', body: [path.getStatementParent().node] }, { compact: true }).code;
+    this.originalCode = cachedCode ?? generator({
+      ...originalFile.program,
+      type: 'Program',
+      body: [path.getStatementParent().node],
+    }, { compact: true }).code;
 
     const moduleCode = path.node.arguments[0];
     if (moduleCode.type !== 'FunctionExpression') throw new SyntaxError(`Param 1 of __d should be a function but got ${moduleCode.type}`);

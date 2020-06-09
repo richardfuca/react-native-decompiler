@@ -7,6 +7,8 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
   static traverseTimeTaken = 0;
   static timeTaken: { [index: string]: number } = {};
 
+  private readonly module: Module;
+  private readonly moduleList: Module[];
   private readonly list: T[];
   private readonly listConstructors: TConstructor[];
   private readonly maxPass: number;
@@ -22,6 +24,9 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
     });
     this.maxPass = Math.max(...this.list.map(plugin => plugin.pass));
     this.performance = perfSetting;
+
+    this.module = module;
+    this.moduleList = moduleList;
   }
 
   parse = (module: Module) => {
@@ -32,12 +37,12 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
         if (plugin.pass !== pass) return;
         if (plugin.evaluate && this.performance) {
           startTime = performance.now();
-          plugin.evaluate(module.path);
+          plugin.evaluate(module.path, this.rerunPlugin);
           Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
         } else if (plugin.evaluate) {
-          plugin.evaluate(module.path);
+          plugin.evaluate(module.path, this.rerunPlugin);
         } else if (plugin.getVisitor) {
-          const visitor: any = plugin.getVisitor();
+          const visitor: any = plugin.getVisitor(this.rerunPlugin);
           Object.keys(visitor).forEach((key) => {
             if (!visitorFunctions[key]) {
               visitorFunctions[key] = [];
@@ -71,5 +76,16 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
 
   processVisit = (plugins: ((path: NodePath<unknown>) => void)[]) => (path: NodePath<unknown>) => {
     plugins.forEach(fn => fn(path));
+  }
+
+  rerunPlugin = (pluginConstructor: PluginConstructor) => {
+    const plugin = new pluginConstructor(this.module, this.moduleList);
+    if (plugin.evaluate) {
+      plugin.evaluate(this.module.path, this.rerunPlugin);
+    } else if (plugin.getVisitor) {
+      this.module.path.traverse(plugin.getVisitor(this.rerunPlugin));
+    } else {
+      throw new Error('Plugin does not have getVisitor nor evaluate');
+    }
   }
 }

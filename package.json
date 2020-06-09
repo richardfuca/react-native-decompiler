@@ -4,26 +4,29 @@
   "description": "",
   "main": "./out/index.js",
   "author": "",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@babel/generator": "^7.10.2",
     "@babel/parser": "^7.10.2",
     "@babel/traverse": "^7.3.4",
-    "@types/babel__traverse": "^7.0.12",
+    "@babel/types": "^7.10.2",
     "cli-progress": "^3.8.2",
     "command-line-args": "^5.0.2",
-    "fs-extra": "^9.0.1",
-    "patch-package": "^6.0.5",
-    "tslint": "^5.14.0",
-    "tslint-config-airbnb": "^5.11.1",
-    "typescript": "^3.9.5"
+    "fs-extra": "^9.0.1"
   },
   "devDependencies": {
-    "@babel/types": "^7.10.2",
     "@types/babel__generator": "^7.6.1",
+    "@types/babel__traverse": "^7.0.12",
     "@types/babylon": "^6.16.5",
     "@types/cli-progress": "^3.7.0",
     "@types/command-line-args": "^5.0.0",
-    "@types/fs-extra": "^9.0.1"
+    "@types/fs-extra": "^9.0.1",
+    "@typescript-eslint/eslint-plugin": "^3.2.0",
+    "@typescript-eslint/parser": "^3.2.0",
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb-typescript": "^8.0.2",
+    "eslint-plugin-import": "^2.21.1",
+    "patch-package": "^6.0.5",
+    "typescript": "^3.9.5"
   }
 }

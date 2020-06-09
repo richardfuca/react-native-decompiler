@@ -1,19 +1,22 @@
 import { Visitor } from '@babel/traverse';
-import { isIdentifier, isMemberExpression, isCallExpression } from '@babel/types';
+import { isIdentifier, stringLiteral } from '@babel/types';
 import { Plugin } from '../../plugin';
 
 export default class RequireMapper extends Plugin {
-  readonly pass = 1;
+  readonly pass = 2;
 
   getVisitor(): Visitor {
     return {
       VariableDeclarator: (path) => {
-        if (!isCallExpression(path.node.init) || !isIdentifier(path.node.init.callee) || !isMemberExpression(path.node.init.arguments[0])) return;
-        if (path.scope.getBindingIdentifier(path.node.init.callee.name)?.start !== this.module.requireParam.start) return;
+        const callExpression = path.get('init');
+        if (!callExpression.isCallExpression() || !isIdentifier(callExpression.node.callee)) return;
 
-        path.node.init.callee.name = 'require';
+        const moduleDependency = this.getModuleDependency(callExpression);
+        if (moduleDependency == null) return;
 
-        const moduleDependency = this.moduleList[this.module.dependencies[path.node.init.arguments[0].property.value]];
+        callExpression.node.callee.name = 'require';
+
+        callExpression.node.arguments[0] = stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`);
         if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {
           if (!isIdentifier(path.node.id)) return;
 
