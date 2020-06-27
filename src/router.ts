@@ -30,8 +30,8 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
   }
 
   parse = (module: Module) => {
-    let startTime = performance.now();
     for (let pass = 1; pass <= this.maxPass; pass += 1) {
+      let startTime = performance.now();
       const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
       this.list.forEach((plugin, i) => {
         if (plugin.pass !== pass) return;
@@ -71,14 +71,24 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
         startTime = performance.now();
         module.path.traverse(visitor);
       }
+      this.list.forEach((plugin, i) => {
+        if (plugin.pass !== pass) return;
+        if (plugin.afterPass && this.performance) {
+          startTime = performance.now();
+          plugin.afterPass(this.rerunPlugin);
+          Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
+        } else if (plugin.afterPass) {
+          plugin.afterPass(this.rerunPlugin);
+        }
+      });
     }
-  }
+  };
 
-  processVisit = (plugins: ((path: NodePath<unknown>) => void)[]) => (path: NodePath<unknown>) => {
-    plugins.forEach(fn => fn(path));
-  }
+  processVisit = (plugins: ((path: NodePath<unknown>) => void)[]) => (path: NodePath<unknown>): void => {
+    plugins.forEach((fn) => fn(path));
+  };
 
-  rerunPlugin = (pluginConstructor: PluginConstructor) => {
+  rerunPlugin = (pluginConstructor: PluginConstructor): void => {
     const plugin = new pluginConstructor(this.module, this.moduleList);
     if (plugin.evaluate) {
       plugin.evaluate(this.module.path, this.rerunPlugin);
@@ -87,5 +97,5 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
     } else {
       throw new Error('Plugin does not have getVisitor nor evaluate');
     }
-  }
+  };
 }

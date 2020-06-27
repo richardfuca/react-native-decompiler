@@ -8,6 +8,7 @@ import TypeofFlipper from './flippers/typeofFlipper';
 import AssignmentIfElseToTernary from './cleaners/assignmentIfElseToTernary';
 import HangingIfElseWrapper from './longhanders/hangingIfElseWrapper';
 import DefaultInteropEvaluator from './evaluators/defaultInteropEvaluator';
+import ArrayDestructureEvaluator from './evaluators/arrayDestructureEvaluator';
 
 const decompilerList: PluginConstructor[] = [
   VoidZeroToUndefined,
@@ -18,6 +19,7 @@ const decompilerList: PluginConstructor[] = [
   AssignmentIfElseToTernary,
   HangingIfElseWrapper,
   DefaultInteropEvaluator,
+  ArrayDestructureEvaluator,
   // pass 2
   UselessCommaOperatorCleaner,
 ];

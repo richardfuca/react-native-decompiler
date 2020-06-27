@@ -12,9 +12,14 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
-    'airbnb-typescript',
+    'airbnb-typescript/base',
   ],
   rules: {
-    "max-lem": ["warn", 150],
+    "max-len": ["warn", 180],
+    "no-console": "off",
+    "@typescript-eslint/lines-between-class-members": "off",
+    "class-methods-use-this": "off",
+    "prefer-destructuring": "off",
+    "no-param-reassign": ["error", { props: false }],
   },
 };

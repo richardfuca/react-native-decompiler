@@ -1,22 +1,27 @@
 import { NodePath } from '@babel/traverse';
 import generator from '@babel/generator';
-import { CallExpression, Identifier, NumericLiteral, BlockStatement, File } from '@babel/types';
+import {
+  CallExpression, Identifier, NumericLiteral, BlockStatement, File, isFunctionExpression, isNumericLiteral, isArrayExpression, isIdentifier,
+} from '@babel/types';
+import CachedModule from './cacheModule';
 
 export default class Module {
-  readonly path: NodePath<CallExpression>;
-  readonly originalCode: string;
-  readonly moduleCode: BlockStatement;
-  readonly moduleCodeStrings: string[] = [];
+  path: NodePath<CallExpression>;
+  originalFile: File;
 
-  readonly moduleId: number;
-
+  moduleCode: BlockStatement;
+  moduleId: number;
+  /** The dependencies of this module */
   dependencies: number[];
+  globalsParam: Identifier;
+  requireParam: Identifier;
+  moduleObjParam: Identifier;
+  exportsParam: Identifier;
+  dependencyMapParam: Identifier;
 
-  readonly globalsParam: Identifier;
-  readonly requireParam: Identifier;
-  readonly moduleObjParam: Identifier;
-  readonly exportsParam: Identifier;
-  readonly dependencyMapParam: Identifier;
+  cacheLoaded = false;
+  originalCode!: string;
+  moduleCodeStrings: string[] = [];
 
   // modifiable fields
   /** The name of the module */
@@ -27,44 +32,53 @@ export default class Module {
   isNpmModule = false;
   /** If the module should not be decompiled nor outputted */
   ignored = false;
+  /** The module tags */
   tags: string[] = [];
 
-  constructor(path: NodePath<CallExpression>, originalFile: File, cachedCode?: string) {
+  constructor(path: NodePath<CallExpression>, originalFile: File) {
     this.path = path;
+    this.originalFile = originalFile;
 
-    this.originalCode = cachedCode ?? generator({
-      ...originalFile.program,
-      type: 'Program',
-      body: [path.getStatementParent().node],
-    }, { compact: true }).code;
+    const moduleCodeFunction = path.node.arguments[0];
+    if (!isFunctionExpression(moduleCodeFunction)) throw new SyntaxError('Param 1 of __d ws not a function');
+    this.moduleCode = moduleCodeFunction.body;
 
-    const moduleCode = path.node.arguments[0];
-    if (moduleCode.type !== 'FunctionExpression') throw new SyntaxError(`Param 1 of __d should be a function but got ${moduleCode.type}`);
-    this.moduleCode = moduleCode.body;
-
-    const moduleIdNode = path.node.arguments[1];
-    if (moduleIdNode.type !== 'NumericLiteral') throw new SyntaxError(`Param 2 of __d should be a number but got ${moduleIdNode.type}`);
-    this.moduleId = moduleIdNode.value;
+    if (!isNumericLiteral(path.node.arguments[1])) throw new SyntaxError('Param 2 of __d not a number');
+    this.moduleId = path.node.arguments[1].value;
     this.moduleName = `${this.moduleId}`;
 
-    const dependenciesNode = path.node.arguments[2];
-    if (dependenciesNode.type !== 'ArrayExpression') throw new SyntaxError(`Param 3 of __d should be a array but got ${moduleIdNode.type}`);
-    if (dependenciesNode.elements.some(node => node == null || node.type !== 'NumericLiteral')) throw new SyntaxError('Param 3 of __d has non-number elements');
-    this.dependencies = (<NumericLiteral[]>dependenciesNode.elements).map(ele => ele.value);
+    if (!isArrayExpression(path.node.arguments[2])) throw new SyntaxError('Param 3 of __d not a array');
+    if (path.node.arguments[2].elements.some((node) => !isNumericLiteral(node))) throw new SyntaxError('Param 3 of __d has non-number elements');
+    this.dependencies = (<NumericLiteral[]>path.node.arguments[2].elements).map((ele) => ele.value);
 
-    const moduleCodeParams = moduleCode.params;
-    if (moduleCodeParams.length !== 5 && moduleCodeParams.length !== 7) throw new SyntaxError('Param 1 of __d doesnt have 5/7 params');
-    if (moduleCodeParams.some(node => node == null || node.type !== 'Identifier')) throw new SyntaxError('Param 1 has some non-identifiers');
-    this.globalsParam = <Identifier>moduleCodeParams[0];
-    this.requireParam = <Identifier>moduleCodeParams[1];
-    this.moduleObjParam = <Identifier>moduleCodeParams[moduleCodeParams.length === 7 ? 4 : 2];
-    this.exportsParam = <Identifier>moduleCodeParams[moduleCodeParams.length === 7 ? 5 : 3];
-    this.dependencyMapParam = <Identifier>moduleCodeParams[moduleCodeParams.length === 7 ? 6 : 4];
+    if (moduleCodeFunction.params.length !== 5 && moduleCodeFunction.params.length !== 7) throw new SyntaxError('Param 1 of __d doesnt have 5/7 params');
+    if (moduleCodeFunction.params.some((node) => !isIdentifier(node))) throw new SyntaxError('Param 1 has some non-identifiers');
+    this.globalsParam = <Identifier>moduleCodeFunction.params[0];
+    this.requireParam = <Identifier>moduleCodeFunction.params[1];
+    this.moduleObjParam = <Identifier>moduleCodeFunction.params[moduleCodeFunction.params.length === 7 ? 4 : 2];
+    this.exportsParam = <Identifier>moduleCodeFunction.params[moduleCodeFunction.params.length === 7 ? 5 : 3];
+    this.dependencyMapParam = <Identifier>moduleCodeFunction.params[moduleCodeFunction.params.length === 7 ? 6 : 4];
+  }
 
-    this.path.traverse({
-      StringLiteral: (path) => {
-        this.moduleCodeStrings.push(path.node.value);
-      },
-    });
+  loadCache(cache: CachedModule): void {
+    this.cacheLoaded = true;
+    this.originalCode = cache.originalCode;
+    this.moduleCodeStrings = cache.moduleStrings ?? [];
+  }
+
+  initalize(): void {
+    this.originalCode = this.originalCode ?? generator({
+      ...this.originalFile.program,
+      type: 'Program',
+      body: [this.path.getStatementParent().node],
+    }, { compact: true }).code;
+
+    if (!this.cacheLoaded) {
+      this.path.traverse({
+        StringLiteral: (path) => {
+          this.moduleCodeStrings.push(path.node.value);
+        },
+      });
+    }
   }
 }

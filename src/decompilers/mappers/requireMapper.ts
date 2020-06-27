@@ -5,22 +5,28 @@ import { Plugin } from '../../plugin';
 export default class RequireMapper extends Plugin {
   readonly pass = 2;
 
+  private requireRenamed = false;
+
   getVisitor(): Visitor {
     return {
-      VariableDeclarator: (path) => {
-        const callExpression = path.get('init');
-        if (!callExpression.isCallExpression() || !isIdentifier(callExpression.node.callee)) return;
+      CallExpression: (path) => {
+        if (!isIdentifier(path.node.callee)) return;
 
-        const moduleDependency = this.getModuleDependency(callExpression);
+        const moduleDependency = this.getModuleDependency(path);
         if (moduleDependency == null) return;
 
-        callExpression.node.callee.name = 'require';
+        if (!this.requireRenamed) {
+          this.requireRenamed = true;
+          path.scope.rename(path.node.callee.name, 'require');
+        }
 
-        callExpression.node.arguments[0] = stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`);
+        path.node.arguments[0] = stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`);
         if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {
-          if (!isIdentifier(path.node.id)) return;
+          const parent = path.parentPath;
+          if (!parent.isVariableDeclarator()) return;
+          if (!isIdentifier(parent.node.id)) return;
 
-          path.scope.rename(path.node.id.name, moduleDependency.npmModuleVarName);
+          path.scope.rename(parent.node.id.name, moduleDependency.npmModuleVarName);
         }
       },
     };

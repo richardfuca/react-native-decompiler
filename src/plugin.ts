@@ -1,4 +1,4 @@
-import { CallExpression, BlockStatement, isFunctionExpression, isIdentifier, isMemberExpression } from '@babel/types';
+import { CallExpression, BlockStatement, isFunctionExpression, isIdentifier, isMemberExpression, isNumericLiteral, isStringLiteral } from '@babel/types';
 import { NodePath, Visitor } from '@babel/traverse';
 import Module from './module';
 
@@ -26,6 +26,9 @@ export abstract class Plugin {
   /** Do a full evaluation. Use this for advanced plugins, or for super simple plugins that don't do traversals. */
   evaluate?(block: NodePath<CallExpression>, rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
 
+  /** Runs after the pass completes. */
+  afterPass?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
+
   protected navigateToModuleBody(path: NodePath<CallExpression>): NodePath<BlockStatement> {
     if (!isFunctionExpression(path.node.arguments[0])) throw new Error('Path is not module body');
     const argumentsPath = path.get('arguments');
@@ -35,10 +38,22 @@ export abstract class Plugin {
     return bodyPath;
   }
 
-  protected getModuleDependency(path: NodePath<CallExpression>) {
-    if (!isIdentifier(path.node.callee) || !isMemberExpression(path.node.arguments[0])) return null;
+  protected getModuleDependency(path: NodePath<CallExpression>): Module | null {
+    if (!isIdentifier(path.node.callee) || (!isMemberExpression(path.node.arguments[0]) && !isStringLiteral(path.node.arguments[0]))) return null;
     if (path.scope.getBindingIdentifier(path.node.callee.name)?.start !== this.module.requireParam.start) return null;
 
-    return this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]];
+    if (isMemberExpression(path.node.arguments[0]) && isNumericLiteral(path.node.arguments[0].property)) {
+      return this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]];
+    }
+
+    if (isStringLiteral(path.node.arguments[0])) {
+      const nonNpmRegexTest = /\.\/([0-9]+)/.exec(path.node.arguments[0].value);
+      if (nonNpmRegexTest != null) {
+        return this.moduleList[this.module.dependencies[+nonNpmRegexTest[1]]];
+      }
+      return this.moduleList.find((mod) => isStringLiteral(path.node.arguments[0]) && mod?.moduleName === path.node.arguments[0].value) ?? null;
+    }
+
+    return null;
   }
 }

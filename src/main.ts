@@ -4,61 +4,93 @@ import * as babylon from '@babel/parser';
 import traverse from '@babel/traverse';
 import generator from '@babel/generator';
 import commandLineArgs from 'command-line-args';
+import CliProgress from 'cli-progress';
+import { isIdentifier } from '@babel/types';
+import crypto from 'crypto';
 import Module from './module';
 import taggerList from './taggers/taggerList';
-import CliProgress from 'cli-progress';
-import crypto from 'crypto';
 import editorList from './editors/editorList';
-import { isIdentifier } from '@babel/types';
 import Router from './router';
 import decompilerList from './decompilers/decompilerList';
+import CacheParse from './cacheParse';
+import { CachedFile } from './cacheModule';
 
-const argValues = commandLineArgs<{ in: string, out: string, entry: number, performance: boolean }>([
+const argValues = commandLineArgs<{ in: string, out: string, entry: number, performance: boolean, decompileIgnored: boolean }>([
   { name: 'in', alias: 'i' },
   { name: 'out', alias: 'o' },
   { name: 'entry', alias: 'e', type: Number },
   { name: 'performance', alias: 'p', type: Boolean },
+  { name: 'decompileIgnored', type: Boolean },
 ]);
+const progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
+const cacheFileName = `${argValues.out}/${argValues.entry ?? 'null'}.cache`;
+let startTime = performance.now();
 
 fsExtra.ensureDirSync(argValues.out);
 
-let startTime = performance.now();
 console.log('Reading file...');
-let jsFile = fsExtra.readFileSync(argValues.in, 'utf8');
-if (argValues.entry && fsExtra.existsSync(`${argValues.out}/${argValues.entry}.cache`)) {
-  const cacheFile = fsExtra.readFileSync(`${argValues.out}/${argValues.entry}.cache`, 'utf8');
-  if (cacheFile.split('\n')[0] !== crypto.createHash('md5').update(jsFile).digest('hex')) {
+
+const inputJsFile = fsExtra.readFileSync(argValues.in, 'utf8');
+let cacheFile: CachedFile | undefined = fsExtra.existsSync(cacheFileName) ? <CachedFile>fsExtra.readJSONSync(cacheFileName) : undefined;
+
+if (cacheFile) {
+  console.log('Cache detected, validating it...');
+  if (cacheFile.checksum !== crypto.createHash('md5').update(inputJsFile).digest('hex')) {
     console.log('Cache invalidated due to checksum mismatch');
-    fsExtra.removeSync(`${argValues.out}/${argValues.entry}.cache`);
+    fsExtra.removeSync(cacheFileName);
+    cacheFile = undefined;
   } else {
-    console.log('Reading from cache!');
-    jsFile = cacheFile.split('\n').slice(1).join('\n');
+    console.log('Cache validated');
   }
 }
 
 console.log(`Took ${performance.now() - startTime}ms`);
 startTime = performance.now();
-console.log('Parsing JS...');
-const originalFile = babylon.parse(jsFile);
 
-console.log(`Took ${performance.now() - startTime}ms`);
-startTime = performance.now();
-console.log('Reading modules...');
 const modules: Module[] = [];
-traverse(originalFile, {
-  // tslint:disable-next-line:function-name
-  CallExpression(path) {
-    if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
-      const module = new Module(path, originalFile);
-      modules[module.moduleId] = module;
-      path.skip();
-    }
-  },
-});
+if (cacheFile) {
+  console.log('Loading cache...');
 
-let modulesToTag = modules;
+  const validCachedModules = cacheFile.modules.filter((cachedModule) => cachedModule && cachedModule.originalCode);
+  progressBar.start(validCachedModules.length, 0);
+  validCachedModules.forEach((cachedModule) => {
+    const originalFile = babylon.parse(cachedModule.originalCode);
+    traverse(originalFile, {
+      CallExpression(path) {
+        if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
+          const module = new Module(path, originalFile);
+          module.loadCache(cachedModule);
+          modules[module.moduleId] = module;
+          progressBar.increment();
+        }
+        path.skip();
+      },
+    });
+  });
+  progressBar.stop();
+} else {
+  console.log('Parsing JS...');
+
+  const originalFile = babylon.parse(inputJsFile);
+
+  console.log(`Took ${performance.now() - startTime}ms`);
+  startTime = performance.now();
+  console.log('Finding modules...');
+
+  traverse(originalFile, {
+    CallExpression(path) {
+      if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
+        const module = new Module(path, originalFile);
+        modules[module.moduleId] = module;
+      }
+      path.skip();
+    },
+  });
+}
+
 if (argValues.entry != null) {
-  const entryModuleDependencies: Set<number> = new Set();
+  console.log('Entry module provided, filtering out unused modules');
+  const entryModuleDependencies = new Set<number>();
   let lastDependenciesSize = 0;
 
   entryModuleDependencies.add(argValues.entry);
@@ -66,36 +98,43 @@ if (argValues.entry != null) {
   while (lastDependenciesSize !== entryModuleDependencies.size) {
     lastDependenciesSize = entryModuleDependencies.size;
     entryModuleDependencies.forEach((moduleId) => {
-      const module = modules.find(module => module?.moduleId === moduleId);
+      const module = modules.find((mod) => mod?.moduleId === moduleId);
       if (!module) throw new Error(`Failed to find entry module/dependency ${moduleId}`);
-      module.dependencies.forEach(dep => entryModuleDependencies.add(dep));
+      module.dependencies.forEach((dep) => entryModuleDependencies.add(dep));
     });
   }
 
-  modulesToTag = modules.filter(module => entryModuleDependencies.has(module.moduleId));
-
-  if (!fsExtra.existsSync(`${argValues.out}/${argValues.entry}.cache`)) {
-    const cacheLines = [
-      crypto.createHash('md5').update(jsFile).digest('hex'),
-      ...modules.map(module => module.originalCode),
-    ];
-    fsExtra.writeFileSync(`${argValues.out}/${argValues.entry}.cache`, cacheLines.join('\n'));
-  }
+  modules.forEach((mod) => {
+    if (!entryModuleDependencies.has(mod.moduleId)) {
+      mod.ignored = true;
+    }
+  });
 }
+
+let nonIgnoredModules = modules.filter((mod) => argValues.decompileIgnored || !mod.ignored);
 
 console.log(`Took ${performance.now() - startTime}ms`);
 startTime = performance.now();
+console.log('Pre-parsing modules...');
+
+progressBar.start(nonIgnoredModules.length, 0);
+nonIgnoredModules.forEach((module) => {
+  module.initalize();
+
+  progressBar.increment();
+});
+
+progressBar.stop();
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Tagging...');
-const progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
-progressBar.start(modulesToTag.length, 0);
-modulesToTag.forEach((module) => {
+progressBar.start(nonIgnoredModules.length, 0);
+nonIgnoredModules.forEach((module) => {
   const router = new Router(taggerList, module, modules, argValues.performance);
   router.parse(module);
 
   progressBar.increment();
 });
-
-const nonIgnoredModules = modulesToTag.filter(module => !module.ignored);
 
 progressBar.stop();
 if (argValues.performance) {
@@ -106,6 +145,31 @@ if (argValues.performance) {
 }
 console.log(`Took ${performance.now() - startTime}ms`);
 startTime = performance.now();
+
+console.log('Filtering out modules only depended on ignored modules...');
+
+let modulesToIgnore: Module[] = [];
+function calculateModulesToIgnore() {
+  modulesToIgnore = modules.filter((mod) => {
+    const dependentModules = modules.filter((otherMod) => otherMod.dependencies.includes(mod.moduleId));
+    return !mod.ignored && dependentModules.length > 0 && dependentModules.every((otherMod) => otherMod.ignored || mod.dependencies.includes(otherMod.moduleId));
+  });
+}
+calculateModulesToIgnore();
+while (modulesToIgnore.length) {
+  modulesToIgnore.forEach((mod) => {
+    mod.ignored = true;
+  });
+  calculateModulesToIgnore();
+}
+
+modules.forEach((mod) => {
+  if (mod.ignored && !mod.isNpmModule) return;
+  const dependentModules = modules.filter((otherMod) => !otherMod.ignored && otherMod.dependencies.includes(mod.moduleId));
+  console.debug(mod.moduleId, mod.moduleName, mod.isNpmModule ? ['X'] : dependentModules.map((m) => m.moduleId));
+});
+
+nonIgnoredModules = modules.filter((mod) => argValues.decompileIgnored || !mod.ignored);
 console.log('Decompiling...');
 progressBar.start(nonIgnoredModules.length, 0);
 nonIgnoredModules.forEach((module) => {
@@ -129,9 +193,9 @@ console.log('Generating code...');
 progressBar.start(nonIgnoredModules.length, 0);
 const generatedFiles = nonIgnoredModules.map((module) => {
   const returnValue = {
-    name: module.moduleName,
+    name: module.moduleId,
     code: generator({
-      ...originalFile.program,
+      ...module.originalFile.program,
       type: 'Program',
       body: module.moduleCode.body,
     }).code,
@@ -145,7 +209,8 @@ console.log(`Took ${performance.now() - startTime}ms`);
 startTime = performance.now();
 console.log('Saving...');
 progressBar.start(nonIgnoredModules.length, 0);
-generatedFiles.map((file) => {
+
+generatedFiles.forEach((file) => {
   const filePath = `${argValues.out}/${file.name}.js`;
   if (!fsExtra.existsSync(filePath) || fsExtra.readFileSync(filePath, 'utf-8') !== file.code) {
     fsExtra.writeFileSync(`${argValues.out}/${file.name}.js`, file.code);
@@ -154,6 +219,12 @@ generatedFiles.map((file) => {
 });
 
 progressBar.stop();
+
+if (argValues.entry) {
+  console.log('Writing to cache...');
+  new CacheParse(inputJsFile, '').writeCache(cacheFileName, modules);
+}
+
 console.log(`Took ${performance.now() - startTime}ms`);
 startTime = performance.now();
 console.log('Done!');
