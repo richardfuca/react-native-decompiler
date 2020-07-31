@@ -9,7 +9,7 @@
     "@babel/generator": "^7.10.5",
     "@babel/parser": "^7.10.5",
     "@babel/traverse": "^7.10.5",
-    "@babel/types": "^7.10.5",
+    "@babel/types": "^7.11.0",
     "cli-progress": "^3.8.2",
     "command-line-args": "^5.0.2",
     "fs-extra": "^9.0.1",
