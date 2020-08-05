@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import ModuleFinder from './moduleFinder';
 
 export default class SimpleModuleFinder extends ModuleFinder {
@@ -20,6 +21,8 @@ export default class SimpleModuleFinder extends ModuleFinder {
       this.tagAsNpmModule('@sentry/browser', 'Sentry');
     } else if (this.module.moduleCodeStrings.includes('progress-bar-android-moved')) {
       this.tagAsNpmModule('react-native', 'ReactNative');
+    } else if (this.module.moduleCodeStrings.includes('^[\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u180E\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF]+')) {
+      this.tagAsNpmModule('url-parse', 'Url');
     }
   }
 }

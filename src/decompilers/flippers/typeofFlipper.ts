@@ -1,5 +1,5 @@
 import { Visitor } from '@babel/traverse';
-import { isUnaryExpression } from '@babel/types';
+import { isUnaryExpression, isPrivateName } from '@babel/types';
 import { Plugin } from '../../plugin';
 
 export default class TypeofFlipper extends Plugin {
@@ -10,6 +10,8 @@ export default class TypeofFlipper extends Plugin {
       BinaryExpression(path) {
         if (!isUnaryExpression(path.node.right) || path.node.right.operator !== 'typeof') return;
         const tempLeft = path.node.left;
+        if (isPrivateName(tempLeft)) return;
+
         path.node.left = path.node.right;
         path.node.right = tempLeft;
       },

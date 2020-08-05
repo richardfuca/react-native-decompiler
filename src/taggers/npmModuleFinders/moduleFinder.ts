@@ -14,15 +14,6 @@ export default abstract class ModuleFinder extends Plugin {
     this.module.ignored = true;
     this.module.moduleName = moduleName;
     this.module.npmModuleVarName = varName;
-
-    const modules = new Set(this.module.dependencies);
-    let lastLength = 0;
-    while (lastLength !== modules.size) {
-      lastLength = modules.size;
-      modules.forEach((i) => {
-        this.moduleList[i].dependencies.forEach(dep => modules.add(dep));
-      });
-    }
   }
 
   abstract evaluate(path: NodePath<CallExpression>): void;

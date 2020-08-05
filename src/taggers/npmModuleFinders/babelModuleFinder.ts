@@ -35,5 +35,10 @@ export default class BabelModuleFinder extends ModuleFinder {
     if (createClassRegex.test(this.module.originalCode)) {
       this.tagAsNpmModule('@babel/runtime/helpers/createClass');
     }
+
+    const enumerablePropRegex = /.\.exports=function\(.,.\){if\(null==.\)return{};var .,.,.=.\(.,.\);if\(Object\.getOwnPropertySymbols\){var .=Object\.getOwnPropertySymbols\(.\);/;
+    if (enumerablePropRegex.test(this.module.originalCode)) {
+      this.tagAsNpmModule('@babel/runtime/helpers/defineEnumerableProperties');
+    }
   }
 }

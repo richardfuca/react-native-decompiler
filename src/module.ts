@@ -64,6 +64,8 @@ export default class Module {
     this.cacheLoaded = true;
     this.originalCode = cache.originalCode;
     this.moduleCodeStrings = cache.moduleStrings ?? [];
+    this.moduleName = cache.moduleName;
+    this.npmModuleVarName = cache.npmModuleVarName;
   }
 
   initalize(): void {

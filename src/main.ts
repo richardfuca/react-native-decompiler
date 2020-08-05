@@ -15,12 +15,14 @@ import decompilerList from './decompilers/decompilerList';
 import CacheParse from './cacheParse';
 import { CachedFile } from './cacheModule';
 
-const argValues = commandLineArgs<{ in: string, out: string, entry: number, performance: boolean, decompileIgnored: boolean }>([
+const argValues = commandLineArgs<{ in: string, out: string, entry: number, performance: boolean, verbose: boolean, decompileIgnored: boolean, agressiveCache: boolean }>([
   { name: 'in', alias: 'i' },
   { name: 'out', alias: 'o' },
   { name: 'entry', alias: 'e', type: Number },
   { name: 'performance', alias: 'p', type: Boolean },
+  { name: 'verbose', alias: 'v', type: Boolean },
   { name: 'decompileIgnored', type: Boolean },
+  { name: 'agressiveCache', type: Boolean },
 ]);
 const progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
 const cacheFileName = `${argValues.out}/${argValues.entry ?? 'null'}.cache`;
@@ -51,10 +53,11 @@ const modules: Module[] = [];
 if (cacheFile) {
   console.log('Loading cache...');
 
-  const validCachedModules = cacheFile.modules.filter((cachedModule) => cachedModule && cachedModule.originalCode);
+  const validCachedModules = cacheFile.modules.filter((cachedModule) => (!argValues.agressiveCache || !cachedModule.ignored || cachedModule.isNpmModule));
+  // const validCachedModules = cacheFile.modules;
   progressBar.start(validCachedModules.length, 0);
   validCachedModules.forEach((cachedModule) => {
-    const originalFile = babylon.parse(cachedModule.originalCode);
+    const originalFile = babylon.parse(argValues.agressiveCache && cachedModule.isNpmModule ? `__d(function(g,r,i,a,m,e,d){},${cachedModule.moduleId},[])` : cachedModule.originalCode);
     traverse(originalFile, {
       CallExpression(path) {
         if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
@@ -88,7 +91,7 @@ if (cacheFile) {
   });
 }
 
-if (argValues.entry != null) {
+if (argValues.entry != null && (!argValues.agressiveCache || !cacheFile)) {
   console.log('Entry module provided, filtering out unused modules');
   const entryModuleDependencies = new Set<number>();
   let lastDependenciesSize = 0;
@@ -99,14 +102,17 @@ if (argValues.entry != null) {
     lastDependenciesSize = entryModuleDependencies.size;
     entryModuleDependencies.forEach((moduleId) => {
       const module = modules.find((mod) => mod?.moduleId === moduleId);
-      if (!module) throw new Error(`Failed to find entry module/dependency ${moduleId}`);
+      if (!module) {
+        if (!argValues.agressiveCache) throw new Error(`Failed to find entry module/dependency ${moduleId}`);
+        return;
+      }
       module.dependencies.forEach((dep) => entryModuleDependencies.add(dep));
     });
   }
 
-  modules.forEach((mod) => {
+  modules.forEach((mod, i) => {
     if (!entryModuleDependencies.has(mod.moduleId)) {
-      mod.ignored = true;
+      delete modules[i];
     }
   });
 }
@@ -150,6 +156,7 @@ console.log('Filtering out modules only depended on ignored modules...');
 
 let modulesToIgnore: Module[] = [];
 function calculateModulesToIgnore() {
+  if (argValues.agressiveCache) return;
   modulesToIgnore = modules.filter((mod) => {
     const dependentModules = modules.filter((otherMod) => otherMod.dependencies.includes(mod.moduleId));
     return !mod.ignored && dependentModules.length > 0 && dependentModules.every((otherMod) => otherMod.ignored || mod.dependencies.includes(otherMod.moduleId));
@@ -163,13 +170,18 @@ while (modulesToIgnore.length) {
   calculateModulesToIgnore();
 }
 
-modules.forEach((mod) => {
-  if (mod.ignored && !mod.isNpmModule) return;
-  const dependentModules = modules.filter((otherMod) => !otherMod.ignored && otherMod.dependencies.includes(mod.moduleId));
-  console.debug(mod.moduleId, mod.moduleName, mod.isNpmModule ? ['X'] : dependentModules.map((m) => m.moduleId));
-});
+if (argValues.verbose) {
+  modules.forEach((mod) => {
+    if (mod.ignored && !mod.isNpmModule) return;
+    const dependentModules = modules.filter((otherMod) => !otherMod.ignored && otherMod.dependencies.includes(mod.moduleId));
+    console.debug(mod.moduleId, mod.moduleName, mod.isNpmModule ? ['X'] : dependentModules.map((m) => m.moduleId));
+  });
+}
 
 nonIgnoredModules = modules.filter((mod) => argValues.decompileIgnored || !mod.ignored);
+
+console.log(`Took ${performance.now() - startTime}ms`);
+startTime = performance.now();
 console.log('Decompiling...');
 progressBar.start(nonIgnoredModules.length, 0);
 nonIgnoredModules.forEach((module) => {

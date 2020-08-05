@@ -10,7 +10,7 @@ export default class PassthroughModuleRemapper extends Plugin {
 
     return {
       AssignmentExpression: (path) => {
-        if (!isMemberExpression(path.node.left) || !isIdentifier(path.node.left?.object)) return;
+        if (!isMemberExpression(path.node.left) || !isIdentifier(path.node.left?.object) || !isIdentifier(path.node.left?.property)) return;
         if (path.scope.getBindingIdentifier(path.node.left.object.name)?.start !== this.module.moduleObjParam.start) return;
         if (path.node.left.property.name !== 'exports') return;
 

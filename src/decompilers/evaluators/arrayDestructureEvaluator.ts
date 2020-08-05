@@ -50,7 +50,7 @@ export default class ArrayDestructureEvaluator extends Plugin {
           path,
           couldBeDestructure: false,
           couldBeArrayAccess: false,
-          varName: <string>path.node.id.name,
+          varName: path.node.id.name,
           varStart: path.node.id.start,
         };
 
@@ -72,7 +72,6 @@ export default class ArrayDestructureEvaluator extends Plugin {
         if (!callExpression.isCallExpression()) return;
 
         const moduleDependency = this.getModuleDependency(callExpression);
-        console.log(moduleDependency?.moduleName);
         if (moduleDependency?.moduleName === '@babel/runtime/helpers/slicedToArray') {
           this.destructureFunction = path;
           this.destructureFunctionStart = path.node.id.start;

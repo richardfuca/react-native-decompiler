@@ -1,4 +1,11 @@
-import { CallExpression, isExpressionStatement, isCallExpression, isMemberExpression, isIdentifier, isStringLiteral } from '@babel/types';
+import {
+  CallExpression,
+  isExpressionStatement,
+  isCallExpression,
+  isMemberExpression,
+  isIdentifier,
+  isStringLiteral,
+} from '@babel/types';
 import { NodePath } from '@babel/traverse';
 import { Plugin } from '../../plugin';
 
