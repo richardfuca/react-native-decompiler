@@ -10,7 +10,7 @@
     "lint": "eslint ./src"
   },
   "dependencies": {
-    "@babel/generator": "^7.11.0",
+    "@babel/generator": "^7.11.4",
     "@babel/parser": "^7.11.3",
     "@babel/traverse": "^7.11.0",
     "@babel/types": "^7.11.0",
