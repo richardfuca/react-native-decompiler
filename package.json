@@ -37,6 +37,6 @@
     "@typescript-eslint/parser": "^3.9.1",
     "eslint-config-airbnb-typescript": "^9.0.0",
     "patch-package": "^6.0.5",
-    "typescript": "^3.9.7"
+    "typescript": "^4.0.2"
   }
 }
