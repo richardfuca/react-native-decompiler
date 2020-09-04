@@ -1,5 +1,5 @@
 import { Visitor } from '@babel/traverse';
-import { isMemberExpression, isIdentifier, isCallExpression } from '@babel/types';
+import { isMemberExpression, isIdentifier, isCallExpression, isNumericLiteral } from '@babel/types';
 import { Plugin } from '../../plugin';
 
 export default class PassthroughModuleRemapper extends Plugin {
@@ -16,7 +16,7 @@ export default class PassthroughModuleRemapper extends Plugin {
 
         if (!isCallExpression(path.node.right) || !isIdentifier(path.node.right.callee)) return;
         if (path.scope.getBindingIdentifier(path.node.right.callee.name)?.start !== this.module.requireParam.start) return;
-        if (!isMemberExpression(path.node.right.arguments[0])) return;
+        if (!isMemberExpression(path.node.right.arguments[0]) || !isNumericLiteral(path.node.right?.arguments[0].property)) return;
 
         const passthroughDependency = this.moduleList[this.module.dependencies[path.node.right?.arguments[0].property.value]];
         this.module.ignored = true;
