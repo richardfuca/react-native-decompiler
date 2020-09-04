@@ -56,13 +56,13 @@ if (cacheFile) {
   const validCachedModules = cacheFile.modules.filter((cachedModule) => (!argValues.agressiveCache || !cachedModule.ignored || cachedModule.isNpmModule));
   // const validCachedModules = cacheFile.modules;
   progressBar.start(validCachedModules.length, 0);
-  validCachedModules.forEach((cachedModule) => {
-    const originalFile = babylon.parse(argValues.agressiveCache && cachedModule.isNpmModule ? `__d(function(g,r,i,a,m,e,d){},${cachedModule.moduleId},[])` : cachedModule.originalCode);
+  validCachedModules.forEach((cached) => {
+    const originalFile = babylon.parse(argValues.agressiveCache && cached.isNpmModule ? `__d(function(g,r,i,a,m,e,d){},${cached.moduleId},[])` : cached.originalCode);
     traverse(originalFile, {
       CallExpression(path) {
         if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
           const module = new Module(path, originalFile);
-          module.loadCache(cachedModule);
+          module.loadCache(cached);
           modules[module.moduleId] = module;
           progressBar.increment();
         }

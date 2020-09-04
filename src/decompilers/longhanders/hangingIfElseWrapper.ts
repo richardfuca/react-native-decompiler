@@ -1,5 +1,11 @@
 import { Visitor } from '@babel/traverse';
-import { isCallExpression, isBinaryExpression, ifStatement, expressionStatement, isLogicalExpression } from '@babel/types';
+import {
+  isCallExpression,
+  isBinaryExpression,
+  ifStatement,
+  expressionStatement,
+  isLogicalExpression,
+} from '@babel/types';
 import { Plugin } from '../../plugin';
 
 export default class HangingIfElseWrapper extends Plugin {

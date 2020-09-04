@@ -7,7 +7,7 @@ import {
   isNumericLiteral,
   arrayPattern,
   identifier,
-  Identifier
+  Identifier,
 } from '@babel/types';
 import { Plugin } from '../../plugin';
 import Module from '../../module';

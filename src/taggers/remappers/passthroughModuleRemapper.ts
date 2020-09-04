@@ -1,5 +1,10 @@
 import { Visitor } from '@babel/traverse';
-import { isMemberExpression, isIdentifier, isCallExpression, isNumericLiteral } from '@babel/types';
+import {
+  isMemberExpression,
+  isIdentifier,
+  isCallExpression,
+  isNumericLiteral,
+} from '@babel/types';
 import { Plugin } from '../../plugin';
 
 export default class PassthroughModuleRemapper extends Plugin {
@@ -21,7 +26,7 @@ export default class PassthroughModuleRemapper extends Plugin {
         const passthroughDependency = this.moduleList[this.module.dependencies[path.node.right?.arguments[0].property.value]];
         this.module.ignored = true;
         this.moduleList.forEach((module) => {
-          module.dependencies = module.dependencies.map(dep => dep === this.module.moduleId ? passthroughDependency.moduleId : dep);
+          module.dependencies = module.dependencies.map((dep) => (dep === this.module.moduleId ? passthroughDependency.moduleId : dep));
         });
       },
     };

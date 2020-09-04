@@ -1,7 +1,7 @@
 import { performance } from 'perf_hooks';
+import { NodePath } from '@babel/traverse';
 import { PluginConstructor, Plugin } from './plugin';
 import Module from './module';
-import { NodePath } from '@babel/traverse';
 
 export default class Router<T extends Plugin, TConstructor extends PluginConstructor<T>> {
   static traverseTimeTaken = 0;
@@ -16,20 +16,20 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
 
   constructor(list: TConstructor[], module: Module, moduleList: Module[], perfSetting: boolean) {
     this.listConstructors = list;
-    this.list = list.map((plugin) => {
-      if (perfSetting && Router.timeTaken[plugin.name] == null) {
-        Router.timeTaken[plugin.name] = 0;
+    this.list = list.map((PluginToLoad) => {
+      if (perfSetting && Router.timeTaken[PluginToLoad.name] == null) {
+        Router.timeTaken[PluginToLoad.name] = 0;
       }
-      return new plugin(module, moduleList);
+      return new PluginToLoad(module, moduleList);
     });
-    this.maxPass = Math.max(...this.list.map(plugin => plugin.pass));
+    this.maxPass = Math.max(...this.list.map((plugin) => plugin.pass));
     this.performance = perfSetting;
 
     this.module = module;
     this.moduleList = moduleList;
   }
 
-  parse = (module: Module) => {
+  parse = (module: Module): void => {
     for (let pass = 1; pass <= this.maxPass; pass += 1) {
       let startTime = performance.now();
       const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
@@ -42,6 +42,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
         } else if (plugin.evaluate) {
           plugin.evaluate(module.path, this.rerunPlugin);
         } else if (plugin.getVisitor) {
+          /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
           const visitor: any = plugin.getVisitor(this.rerunPlugin);
           Object.keys(visitor).forEach((key) => {
             if (!visitorFunctions[key]) {
@@ -67,6 +68,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
       Object.keys(visitorFunctions).forEach((key) => {
         visitor[key] = this.processVisit(visitorFunctions[key]);
       });
+      /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
       if (Object.keys(visitor).length > 0) {
         startTime = performance.now();
         module.path.traverse(visitor);
@@ -88,8 +90,8 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
     plugins.forEach((fn) => fn(path));
   };
 
-  rerunPlugin = (pluginConstructor: PluginConstructor): void => {
-    const plugin = new pluginConstructor(this.module, this.moduleList);
+  rerunPlugin = (PluginToRun: PluginConstructor): void => {
+    const plugin = new PluginToRun(this.module, this.moduleList);
     if (plugin.evaluate) {
       plugin.evaluate(this.module.path, this.rerunPlugin);
     } else if (plugin.getVisitor) {
