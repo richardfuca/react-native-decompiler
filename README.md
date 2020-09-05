@@ -1,4 +1,4 @@
-# React Native Decompiler
+# React Native Decompiler [ALPHA]
 
 Decompiles React Native `index.android.bundle`'s.
 
