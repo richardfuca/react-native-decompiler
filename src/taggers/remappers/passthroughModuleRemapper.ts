@@ -7,6 +7,9 @@ import {
 } from '@babel/types';
 import { Plugin } from '../../plugin';
 
+/**
+ * Resolves and bypasses modules that just export other modules.
+ */
 export default class PassthroughModuleRemapper extends Plugin {
   readonly pass = 1;
 

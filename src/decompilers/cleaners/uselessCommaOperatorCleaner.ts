@@ -2,6 +2,9 @@ import { Visitor } from '@babel/traverse';
 import { isNumericLiteral } from '@babel/types';
 import { Plugin } from '../../plugin';
 
+/**
+ * Cleans up any useless comma operations, for example `(0, function)`
+ */
 export default class UselessCommaOperatorCleaner extends Plugin {
   readonly pass = 1;
 

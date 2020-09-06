@@ -24,6 +24,9 @@ interface VariableDeclaratorData {
   arrayAccessVal?: number;
 }
 
+/**
+ * Converts Babel array destructuring to the native one
+ */
 export default class ArrayDestructureEvaluator extends Plugin {
   readonly pass = 2;
 
@@ -98,6 +101,8 @@ export default class ArrayDestructureEvaluator extends Plugin {
       });
 
       sourceArray.path.node.id = arrayPattern(arrayPatternElements);
+
+      arrayPatternElements.forEach((id, i) => sourceArray.path.scope.registerBinding(id.name, <NodePath>sourceArray.path.get(`id.${i}`)));
 
       this.destructureFunction?.remove();
       data.path.remove();

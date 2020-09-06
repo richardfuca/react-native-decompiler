@@ -2,6 +2,9 @@ import { Visitor } from '@babel/traverse';
 import { isNumericLiteral, booleanLiteral } from '@babel/types';
 import { Plugin } from '../../plugin';
 
+/**
+ * Converts `!1` and `!0`  to `false` and `true` respectively
+ */
 export default class LongBooleans extends Plugin {
   readonly pass = 1;
 

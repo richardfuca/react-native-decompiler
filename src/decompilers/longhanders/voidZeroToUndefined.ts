@@ -2,6 +2,9 @@ import { Visitor } from '@babel/traverse';
 import { identifier, isNumericLiteral } from '@babel/types';
 import { Plugin } from '../../plugin';
 
+/**
+ * Converts `void 0` to `undefined`
+ */
 export default class VoidZeroToUndefined extends Plugin {
   readonly pass = 1;
 

@@ -1,5 +1,8 @@
 import ModuleFinder from './moduleFinder';
 
+/**
+ * Finds babel modules
+ */
 export default class BabelModuleFinder extends ModuleFinder {
   evaluate(): void {
     if (!this.module.originalCode) throw new Error();

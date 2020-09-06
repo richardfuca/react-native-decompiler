@@ -2,6 +2,9 @@ import { Visitor } from '@babel/traverse';
 import { isIdentifier, isMemberExpression } from '@babel/types';
 import { Plugin } from '../../plugin';
 
+/**
+ * Renames the webpack variables to the node variants
+ */
 export default class WebpackRenamer extends Plugin {
   readonly pass = 1;
 

@@ -1,6 +1,9 @@
 /* eslint-disable max-len */
 import ModuleFinder from './moduleFinder';
 
+/**
+ * Simple searcher of NPM modules through string matching
+ */
 export default class SimpleModuleFinder extends ModuleFinder {
   evaluate(): void {
     if (this.module.moduleCodeStrings.includes('suspended while rendering, but no fallback UI was specified')) {

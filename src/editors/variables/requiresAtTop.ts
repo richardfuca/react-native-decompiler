@@ -8,6 +8,9 @@ import {
 import { NodePath } from '@babel/traverse';
 import { Plugin } from '../../plugin';
 
+/**
+ * Moves all requires to the top of the file
+ */
 export default class RequiresAtTop extends Plugin {
   readonly pass = 2;
 
@@ -16,12 +19,9 @@ export default class RequiresAtTop extends Plugin {
     const staging: Statement[] = [];
 
     bodyPath.node.body.forEach((line) => {
-      if (!isVariableDeclaration(line)) return staging.push(line);
-      if (!isCallExpression(line.declarations[0].init)) return staging.push(line);
-      if (!isIdentifier(line.declarations[0].init.callee)) return staging.push(line);
-      if (bodyPath.scope.getBindingIdentifier(line.declarations[0].init.callee.name)?.start !== this.module.requireParam.start) {
-        return staging.push(line);
-      }
+      if (!isVariableDeclaration(line) || !isCallExpression(line.declarations[0].init) || !isIdentifier(line.declarations[0].init.callee)) return staging.push(line);
+      if (!bodyPath.scope.bindingIdentifierEquals(line.declarations[0].init.callee.name, this.module.requireParam)) return staging.push(line);
+
       return staging.unshift(line);
     });
     bodyPath.node.body = staging;

@@ -9,6 +9,9 @@ import {
 import { NodePath } from '@babel/traverse';
 import { Plugin } from '../../plugin';
 
+/**
+ * Removes the ```Object.defineProperty(exports, '__esModule', { value: true });```
+ */
 export default class EsModuleCleaner extends Plugin {
   readonly pass = 2;
 

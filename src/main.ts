@@ -7,6 +7,7 @@ import commandLineArgs from 'command-line-args';
 import CliProgress from 'cli-progress';
 import { isIdentifier } from '@babel/types';
 import crypto from 'crypto';
+import { ESLint } from 'eslint';
 import Module from './module';
 import taggerList from './taggers/taggerList';
 import editorList from './editors/editorList';
@@ -14,13 +15,26 @@ import Router from './router';
 import decompilerList from './decompilers/decompilerList';
 import CacheParse from './cacheParse';
 import { CachedFile } from './cacheModule';
+import eslintConfig from './eslintConfig';
 
-const argValues = commandLineArgs<{ in: string, out: string, entry: number, performance: boolean, verbose: boolean, decompileIgnored: boolean, agressiveCache: boolean }>([
+interface CmdArgs {
+  in: string;
+  out: string;
+  entry: number;
+  performance: boolean;
+  verbose: boolean;
+  decompileIgnored: boolean;
+  agressiveCache: boolean;
+  noEslint: boolean;
+}
+
+const argValues = commandLineArgs<CmdArgs>([
   { name: 'in', alias: 'i' },
   { name: 'out', alias: 'o' },
   { name: 'entry', alias: 'e', type: Number },
   { name: 'performance', alias: 'p', type: Boolean },
   { name: 'verbose', alias: 'v', type: Boolean },
+  { name: 'noEslint', type: Boolean },
   { name: 'decompileIgnored', type: Boolean },
   { name: 'agressiveCache', type: Boolean },
 ]);
@@ -239,4 +253,26 @@ if (argValues.entry) {
 
 console.log(`Took ${performance.now() - startTime}ms`);
 startTime = performance.now();
-console.log('Done!');
+if (!argValues.noEslint) {
+  console.log('Doing further cleanup with ESLint...');
+  (async function main() {
+    const eslint = new ESLint({
+      fix: true,
+      ignore: false,
+      useEslintrc: false,
+      overrideConfig: eslintConfig,
+    });
+
+    const results = await eslint.lintFiles([`${argValues.out}/*.js`]);
+
+    await ESLint.outputFixes(results);
+  }()).then(() => {
+    console.log(`Took ${performance.now() - startTime}ms`);
+    startTime = performance.now();
+    console.log('Done!');
+  }).catch((error) => {
+    console.error(error);
+  });
+} else {
+  console.log('Done!');
+}

@@ -6,8 +6,12 @@ import {
   isMemberExpression,
   isNumericLiteral,
   isStringLiteral,
+  expressionStatement,
+  isStatement,
 } from '@babel/types';
+import generator from '@babel/generator';
 import { NodePath, Visitor } from '@babel/traverse';
+import debug from 'debug';
 import Module from './module';
 
 export interface PluginConstructor<T extends Plugin = Plugin> {
@@ -17,6 +21,8 @@ export interface PluginConstructor<T extends Plugin = Plugin> {
 export abstract class Plugin {
   /** Which pass this plugin should run. Starts at pass #1. Set to 0 or less on construction to skip.  */
   abstract readonly pass: number;
+  /** The name of the plugin */
+  readonly name?: string;
   protected readonly module: Module;
   protected readonly moduleList: Module[];
 
@@ -36,6 +42,23 @@ export abstract class Plugin {
 
   /** Runs after the pass completes. */
   afterPass?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
+
+  protected debugLog(val: unknown): void {
+    debug(`react-native-decompiler:${this.name ?? 'plugin'}`)(val);
+  }
+
+  /**
+   * [DEBUG] Returns the code of the path
+   * @param path The path to generate code from
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected debugPathToCode(path: NodePath<any>): string {
+    return generator({
+      ...this.module.originalFile.program,
+      type: 'Program',
+      body: [isStatement(path.node) ? path.node : expressionStatement(path.node)],
+    }).code;
+  }
 
   protected navigateToModuleBody(path: NodePath<CallExpression>): NodePath<BlockStatement> {
     if (!isFunctionExpression(path.node.arguments[0])) throw new Error('Path is not module body');

@@ -2,6 +2,9 @@ import { Visitor } from '@babel/traverse';
 import { isLogicalExpression, isReturnStatement, conditionalExpression } from '@babel/types';
 import { Plugin } from '../../plugin';
 
+/**
+ * Converts `return condition && a || b;` to `return condition ? a : b;`
+ */
 export default class AssignmentIfElseToTernary extends Plugin {
   readonly pass = 1;
 

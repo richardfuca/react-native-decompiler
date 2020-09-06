@@ -9,6 +9,9 @@ import { Plugin, PluginConstructor } from '../../plugin';
 import RequiresAtTop from '../../editors/variables/requiresAtTop';
 import Module from '../../module';
 
+/**
+ * Evaluates babel default interops
+ */
 export default class DefaultInteropEvaluator extends Plugin {
   readonly pass = 1;
   private readonly INTEROP_MODULE_NAMES = [
