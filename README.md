@@ -1,14 +1,26 @@
 # React Native Decompiler [ALPHA]
 
-Decompiles React Native `index.android.bundle`'s.
+**DOES NOT SUPPORT ENCRYPTED/BINARY (FACEBOOK, INSTAGRAM) BUNDLES**
+
+Decompiles React Native `index.android.bundle` JS files.
 
 # Usage
 
-`-i` accepts an input bundle, and `-o` accepts the folder where to output the decompiled files. Use `-e` with a module ID to only decompile that module & its dependencies.
+1. Download
+2. `npm i`
+3. Build or use ts-node (your choice).
 
-When using `-e` flag, a cache file is also created to reduce loading times upon restarts (useful for development). This may increase the deompilating time on first run.
+Example command: `node ./out/main.js -i index.android.bundle -o ./output`, `ts-node ./src/main.js -i index.android.bundle -o ./output`
 
-Use the `-p` flag to enable per plugin performance recording. Basic performance monitoring (per step) is always done.
+Command params:
+- `-i` (required) - the path to the import bundle
+- `-o` (required) - the path to the output folder
+- `-e` - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
+- `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
+- `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
+- `--noEslint` - does not run ESLint after doing decompilation
+- `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
+- `--agressiveCache` - skips some cache checks at the expense of possible cache desync
 
 # Extending
 
