@@ -28,6 +28,7 @@ export default class PassthroughModuleRemapper extends Plugin {
 
         const passthroughDependency = this.moduleList[this.module.dependencies[path.node.right?.arguments[0].property.value]];
         this.module.ignored = true;
+        this.module.isNpmModule = true; // flag as NPM module in case this module pass through NPM module
         this.moduleList.forEach((module) => {
           module.dependencies = module.dependencies.map((dep) => (dep === this.module.moduleId ? passthroughDependency.moduleId : dep));
         });

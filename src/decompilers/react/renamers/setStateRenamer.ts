@@ -8,7 +8,7 @@ import {
 import { Plugin } from '../../../plugin';
 
 /**
- * Does some renaming on Reach Hook setStates for clarity (changes setter function to `setX` and callback param as `state`)
+ * Does some renaming on Reach Hook setStates for clarity (changes setter function to `setX`)
  */
 export default class SetStateRenamer extends Plugin {
   // has to run after array destructuring

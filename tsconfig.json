@@ -2,7 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2020",
+    "target": "ES2018",
     "noImplicitAny": true,
     "strict": true,
     "strictNullChecks": true,

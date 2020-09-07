@@ -38,6 +38,22 @@ const argValues = commandLineArgs<CmdArgs>([
   { name: 'decompileIgnored', type: Boolean },
   { name: 'agressiveCache', type: Boolean },
 ]);
+if (!argValues.in || !argValues.out) {
+  console.log(`react-native-decompiler
+Example command: react-native-decompiler -i index.android.bundle -o ./output
+
+Command params:
+
+-i (required) - the path to the import bundle
+-o (required) - the path to the output folder
+-e - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
+-p - performance monitoring flag, will print out runtime for each decompiler plugin
+-v - verbose flag, does not include debug logging (use DEBUG=react-native-decompiler:* env flag for that)
+--noEslint - does not run ESLint after doing decompilation
+--decompileIgnored - decompile ignored modules(modules are generally ignored if they are flagged as an NPM module)
+--agressiveCache - skips some cache checks at the expense of possible cache desync`);
+  process.exit(1);
+}
 const progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
 const cacheFileName = `${argValues.out}/${argValues.entry ?? 'null'}.cache`;
 let startTime = performance.now();
@@ -58,6 +74,9 @@ if (cacheFile) {
   } else {
     console.log('Cache validated');
   }
+} else if (argValues.agressiveCache) {
+  console.error('A cache file must be generated first before using the agressive cache');
+  process.exit(1);
 }
 
 console.log(`Took ${performance.now() - startTime}ms`);
@@ -71,7 +90,8 @@ if (cacheFile) {
   // const validCachedModules = cacheFile.modules;
   progressBar.start(validCachedModules.length, 0);
   validCachedModules.forEach((cached) => {
-    const originalFile = babylon.parse(argValues.agressiveCache && cached.isNpmModule ? `__d(function(g,r,i,a,m,e,d){},${cached.moduleId},[])` : cached.originalCode);
+    const canIgnoreModuleBody = argValues.agressiveCache && cached.isNpmModule && cached.originalCode.length > 128;
+    const originalFile = babylon.parse(canIgnoreModuleBody ? `__d(function(g,r,i,a,m,e,d){},${cached.moduleId},[])` : cached.originalCode);
     traverse(originalFile, {
       CallExpression(path) {
         if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
@@ -246,7 +266,7 @@ generatedFiles.forEach((file) => {
 
 progressBar.stop();
 
-if (argValues.entry) {
+if (argValues.entry && !argValues.agressiveCache) {
   console.log('Writing to cache...');
   new CacheParse(inputJsFile, '').writeCache(cacheFileName, modules);
 }
