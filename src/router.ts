@@ -30,59 +30,68 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
   }
 
   parse = (module: Module): void => {
-    for (let pass = 1; pass <= this.maxPass; pass += 1) {
-      let startTime = performance.now();
-      const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
-      this.list.forEach((plugin, i) => {
-        if (plugin.pass !== pass) return;
-        if (plugin.evaluate && this.performance) {
+    try {
+      if (module.failedToDecompile) return;
+
+      for (let pass = 1; pass <= this.maxPass; pass += 1) {
+        let startTime = performance.now();
+        const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
+        this.list.forEach((plugin, i) => {
+          if (plugin.pass !== pass) return;
+          if (plugin.evaluate && this.performance) {
+            startTime = performance.now();
+            plugin.evaluate(module.path, this.rerunPlugin);
+            Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
+          } else if (plugin.evaluate) {
+            plugin.evaluate(module.path, this.rerunPlugin);
+          } else if (plugin.getVisitor) {
+            /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+            const visitor: any = plugin.getVisitor(this.rerunPlugin);
+            Object.keys(visitor).forEach((key) => {
+              if (!visitorFunctions[key]) {
+                visitorFunctions[key] = [];
+              }
+              if (this.performance) {
+                visitorFunctions[key].push((path: NodePath<unknown>) => {
+                  Router.traverseTimeTaken += performance.now() - startTime;
+                  startTime = performance.now();
+                  visitor[key](path);
+                  Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
+                  startTime = performance.now();
+                });
+              } else {
+                visitorFunctions[key].push(visitor[key]);
+              }
+            });
+          } else {
+            throw new Error('Plugin does not have getVisitor nor evaluate');
+          }
+        });
+        const visitor: any = {};
+        Object.keys(visitorFunctions).forEach((key) => {
+          visitor[key] = this.processVisit(visitorFunctions[key]);
+        });
+        /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+        if (Object.keys(visitor).length > 0) {
           startTime = performance.now();
-          plugin.evaluate(module.path, this.rerunPlugin);
-          Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
-        } else if (plugin.evaluate) {
-          plugin.evaluate(module.path, this.rerunPlugin);
-        } else if (plugin.getVisitor) {
-          /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-          const visitor: any = plugin.getVisitor(this.rerunPlugin);
-          Object.keys(visitor).forEach((key) => {
-            if (!visitorFunctions[key]) {
-              visitorFunctions[key] = [];
-            }
-            if (this.performance) {
-              visitorFunctions[key].push((path: NodePath<unknown>) => {
-                Router.traverseTimeTaken += performance.now() - startTime;
-                startTime = performance.now();
-                visitor[key](path);
-                Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
-                startTime = performance.now();
-              });
-            } else {
-              visitorFunctions[key].push(visitor[key]);
-            }
-          });
-        } else {
-          throw new Error('Plugin does not have getVisitor nor evaluate');
+          module.path.traverse(visitor);
+          Router.traverseTimeTaken += performance.now() - startTime;
         }
-      });
-      const visitor: any = {};
-      Object.keys(visitorFunctions).forEach((key) => {
-        visitor[key] = this.processVisit(visitorFunctions[key]);
-      });
-      /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-      if (Object.keys(visitor).length > 0) {
-        startTime = performance.now();
-        module.path.traverse(visitor);
+        this.list.forEach((plugin, i) => {
+          if (plugin.pass !== pass) return;
+          if (plugin.afterPass && this.performance) {
+            startTime = performance.now();
+            plugin.afterPass(this.rerunPlugin);
+            Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
+          } else if (plugin.afterPass) {
+            plugin.afterPass(this.rerunPlugin);
+          }
+        });
       }
-      this.list.forEach((plugin, i) => {
-        if (plugin.pass !== pass) return;
-        if (plugin.afterPass && this.performance) {
-          startTime = performance.now();
-          plugin.afterPass(this.rerunPlugin);
-          Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
-        } else if (plugin.afterPass) {
-          plugin.afterPass(this.rerunPlugin);
-        }
-      });
+    } catch (e) {
+      console.error(`An error occured parsing module ${module.moduleId}, it will be outputted as is!`);
+      console.error(e);
+      module.failedToDecompile = true;
     }
   };
 

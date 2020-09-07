@@ -1,4 +1,11 @@
-import { isSequenceExpression, isBlockStatement, expressionStatement } from '@babel/types';
+import {
+  isSequenceExpression,
+  isBlockStatement,
+  expressionStatement,
+  isAssignmentExpression,
+  isIdentifier,
+  Identifier,
+} from '@babel/types';
 import { Visitor } from '@babel/traverse';
 import { Plugin } from '../../plugin';
 
@@ -31,6 +38,15 @@ export default class CommaOperatorUnwrapper extends Plugin {
           this.debugLog('unwrap VariableDeclaration');
           this.debugLog(this.debugPathToCode(path));
           this.debugLog('---');
+
+          declarator.init.expressions = declarator.init.expressions.filter((expression) => {
+            if (!isAssignmentExpression(expression) || !isIdentifier(expression.left)) return true;
+
+            const matchingDeclaration = path.node.declarations.find((varDeclar) => isIdentifier(varDeclar.id) && varDeclar.id.name === (<Identifier>expression.left).name);
+            if (!matchingDeclaration) return true;
+            matchingDeclaration.init = expression.right;
+            return false;
+          });
 
           path.parent.body.splice(path.parent.body.findIndex((ste) => ste === path.node), 0, ...declarator.init.expressions.slice(0, -1).map((exp) => expressionStatement(exp)));
           declarator.init = declarator.init.expressions[declarator.init.expressions.length - 1];

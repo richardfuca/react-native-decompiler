@@ -4,12 +4,13 @@ import LongBooleans from './longhanders/longBooleans';
 import WebpackRenamer from './renamers/webpackRenamer';
 import RequireMapper from './mappers/requireMapper';
 import UselessCommaOperatorCleaner from './cleaners/uselessCommaOperatorCleaner';
-import ConditionFlipper from './flippers/conditionFlipper';
 import AssignmentIfElseToTernary from './cleaners/assignmentIfElseToTernary';
 import HangingIfElseWrapper from './longhanders/hangingIfElseWrapper';
 import DefaultInteropEvaluator from './evaluators/defaultInteropEvaluator';
 import ArrayDestructureEvaluator from './evaluators/arrayDestructureEvaluator';
 import SetStateRenamer from './react/renamers/setStateRenamer';
+import ToConsumableArrayCleaner from './babel/cleaners/toConsumableArrayCleaner';
+import Spreadifier from './evaluators/spreadifier';
 
 const decompilerList: PluginConstructor[] = [
   VoidZeroToUndefined,
@@ -20,8 +21,9 @@ const decompilerList: PluginConstructor[] = [
   HangingIfElseWrapper,
   DefaultInteropEvaluator,
   ArrayDestructureEvaluator,
+  Spreadifier,
   // pass 2
-  ConditionFlipper,
+  ToConsumableArrayCleaner,
   UselessCommaOperatorCleaner,
   // pass 3
   SetStateRenamer,

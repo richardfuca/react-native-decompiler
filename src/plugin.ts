@@ -37,10 +37,10 @@ export abstract class Plugin {
    */
   getVisitor?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): Visitor;
 
-  /** Do a full evaluation. Use this for advanced plugins, or for super simple plugins that don't do traversals. */
+  /** Do a full evaluation. Use this for advanced plugins, or for plugins that don't do traversals. */
   evaluate?(block: NodePath<CallExpression>, rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
 
-  /** Runs after the pass completes. */
+  /** Runs after the pass completes. Note that the AST of the module may have changed if you stored stuff in getVisitor or evaluate. */
   afterPass?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
 
   protected debugLog(val: unknown): void {

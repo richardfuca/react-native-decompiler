@@ -18,7 +18,7 @@ export default class HangingIfElseWrapper extends Plugin {
   getVisitor(): Visitor {
     return {
       ExpressionStatement: (path) => {
-        if (!isLogicalExpression(path.node.expression) || !isBinaryExpression(path.node.expression.left)) return;
+        if (!isLogicalExpression(path.node.expression) || (!isBinaryExpression(path.node.expression.left) && !isLogicalExpression(path.node.expression.left))) return;
         if (!isCallExpression(path.node.expression.right) || path.node.expression.operator !== '&&') return;
 
         this.debugLog(this.debugPathToCode(path));

@@ -60,12 +60,12 @@ export default class ArrayDestructureEvaluator extends Plugin {
         if (isCallExpression(path.node.init) && isIdentifier(path.node.init.callee)
           && path.node.init.arguments.length === 2 && isIdentifier(path.node.init.arguments[0]) && isNumericLiteral(path.node.init.arguments[1])) {
           variableDeclaratorData.couldBeDestructure = true;
-          variableDeclaratorData.destructureBindingStart = path.scope.getBindingIdentifier(path.node.init.callee.name).start ?? undefined;
-          variableDeclaratorData.destructureArrayBindingStart = path.scope.getBindingIdentifier(path.node.init.arguments[0].name).start ?? undefined;
+          variableDeclaratorData.destructureBindingStart = path.scope.getBindingIdentifier(path.node.init.callee.name)?.start ?? undefined;
+          variableDeclaratorData.destructureArrayBindingStart = path.scope.getBindingIdentifier(path.node.init.arguments[0].name)?.start ?? undefined;
         }
         if (isMemberExpression(path.node.init) && isIdentifier(path.node.init.object) && isNumericLiteral(path.node.init.property)) {
           variableDeclaratorData.couldBeArrayAccess = true;
-          variableDeclaratorData.arrayAccessBindingStart = path.scope.getBindingIdentifier(path.node.init.object.name).start ?? undefined;
+          variableDeclaratorData.arrayAccessBindingStart = path.scope.getBindingIdentifier(path.node.init.object.name)?.start ?? undefined;
           variableDeclaratorData.arrayAccessVal = path.node.init.property.value;
         }
 
@@ -94,19 +94,28 @@ export default class ArrayDestructureEvaluator extends Plugin {
       const arrayUsages = this.variableDeclarators.filter((arrData) => arrData.arrayAccessBindingStart === data.varStart);
       if (!sourceArray || !arrayUsages.length) return;
 
-      const arrayPatternElements: Identifier[] = [];
+      const arrayPatternElements: (Identifier | null)[] = [];
       arrayUsages.forEach((usage) => {
         if (usage.arrayAccessVal == null) throw new Error();
         arrayPatternElements[usage.arrayAccessVal] = identifier(usage.varName);
       });
+      for (let i = 0; i < arrayPatternElements.length; i += 1) {
+        if (arrayPatternElements[i] === undefined) {
+          arrayPatternElements[i] = null;
+        }
+      }
 
       sourceArray.path.node.id = arrayPattern(arrayPatternElements);
 
-      arrayPatternElements.forEach((id, i) => sourceArray.path.scope.registerBinding(id.name, <NodePath>sourceArray.path.get(`id.${i}`)));
+      arrayPatternElements.forEach((id, i) => (id != null ? sourceArray.path.scope.registerBinding(id.name, <NodePath>sourceArray.path.get(`id.${i}`)) : null));
 
-      this.destructureFunction?.remove();
-      data.path.remove();
-      arrayUsages.forEach((usageData) => usageData.path.remove());
+      if (!this.destructureFunction?.removed) {
+        this.destructureFunction?.remove();
+      }
+      if (!data.path.removed) {
+        data.path.remove();
+      }
+      arrayUsages.forEach((usageData) => (usageData.path.removed ? null : usageData.path.remove()));
     });
   }
 }

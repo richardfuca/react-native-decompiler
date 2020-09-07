@@ -32,6 +32,8 @@ export default class Module {
   isNpmModule = false;
   /** If the module should not be decompiled nor outputted */
   ignored = false;
+  /** If the module failed to decompile */
+  failedToDecompile = false;
   /** The module tags */
   tags: string[] = [];
 
