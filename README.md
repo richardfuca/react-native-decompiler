@@ -17,7 +17,7 @@ Command params:
 - `-o` (required) - the path to the output folder
 - `-e` - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
-- `-v` - verbose flag, does not include debug logging (use `DEBUG=`react-native-decompiler:*` env flag for that)
+- `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
 - `--noEslint` - does not run ESLint after doing decompilation
 - `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
 - `--agressiveCache` - skips some cache checks at the expense of possible cache desync
