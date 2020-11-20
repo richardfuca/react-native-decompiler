@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/babel__generator": "^7.6.2",
-    "@types/babel__traverse": "^7.0.13",
+    "@types/babel__traverse": "^7.0.15",
     "@types/babylon": "^6.16.5",
     "@types/cli-progress": "^3.8.0",
     "@types/command-line-args": "^5.0.0",
