@@ -15,6 +15,7 @@ Example command: `node ./out/main.js -i index.android.bundle -o ./output`, `ts-n
 Command params:
 - `-i` (required) - the path to the import bundle
 - `-o` (required) - the path to the output folder
+- `-b` - the path to the bundles folder for unbundled apps. Assumed to be "./js-modules" if not set.
 - `-e` - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)

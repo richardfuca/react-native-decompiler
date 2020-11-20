@@ -15,6 +15,7 @@
     "@babel/parser": "^7.11.5",
     "@babel/traverse": "^7.11.5",
     "@babel/types": "^7.11.5",
+    "chalk": "^4.1.0",
     "cli-progress": "^3.8.2",
     "command-line-args": "^5.0.2",
     "debug": "^4.2.0",

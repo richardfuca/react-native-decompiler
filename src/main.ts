@@ -1,10 +1,12 @@
 import fsExtra from 'fs-extra';
+import path from 'path';
 import { performance } from 'perf_hooks';
 import * as babylon from '@babel/parser';
 import traverse from '@babel/traverse';
 import generator from '@babel/generator';
 import commandLineArgs from 'command-line-args';
 import CliProgress from 'cli-progress';
+import chalk from 'chalk';
 import { isIdentifier } from '@babel/types';
 import crypto from 'crypto';
 import { ESLint } from 'eslint';
@@ -20,6 +22,7 @@ import eslintConfig from './eslintConfig';
 interface CmdArgs {
   in: string;
   out: string;
+  bundlesFolder: string;
   entry: number;
   performance: boolean;
   verbose: boolean;
@@ -34,6 +37,7 @@ const argValues = commandLineArgs<CmdArgs>([
   { name: 'entry', alias: 'e', type: Number },
   { name: 'performance', alias: 'p', type: Boolean },
   { name: 'verbose', alias: 'v', type: Boolean },
+  { name: 'bundlesFolder', alias: 'b', defaultValue: './js-modules' },
   { name: 'noEslint', type: Boolean },
   { name: 'decompileIgnored', type: Boolean },
   { name: 'agressiveCache', type: Boolean },
@@ -46,6 +50,7 @@ Command params:
 
 -i (required) - the path to the import bundle
 -o (required) - the path to the output folder
+-b - the path to the bundles folder for unbundled apps. Assumed to be "./js-modules" if not set.
 -e - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
 -p - performance monitoring flag, will print out runtime for each decompiler plugin
 -v - verbose flag, does not include debug logging (use DEBUG=react-native-decompiler:* env flag for that)
@@ -62,7 +67,15 @@ fsExtra.ensureDirSync(argValues.out);
 
 console.log('Reading file...');
 
-const inputJsFile = fsExtra.readFileSync(argValues.in, 'utf8');
+let inputJsFile = fsExtra.readFileSync(argValues.in, 'utf8');
+if (fsExtra.existsSync(argValues.bundlesFolder)) {
+  console.log('Unbundle detected, re-bundling...');
+
+  const unbundleFileNames = fsExtra.readdirSync(argValues.bundlesFolder).filter((file) => file.endsWith('.js'));
+  const unbundleFiles = unbundleFileNames.map((fileName) => fsExtra.readFileSync(path.join(argValues.bundlesFolder, fileName)));
+  inputJsFile += '\n';
+  inputJsFile += unbundleFiles.join('\n');
+}
 let cacheFile: CachedFile | undefined = fsExtra.existsSync(cacheFileName) ? <CachedFile>fsExtra.readJSONSync(cacheFileName) : undefined;
 
 if (cacheFile) {
@@ -123,6 +136,15 @@ if (cacheFile) {
       path.skip();
     },
   });
+}
+
+if (modules.length === 0) {
+  console.error(`${chalk.red('[!]')} No modules were found!`);
+  console.error(`${chalk.red('[!]')} Possible reasons:`);
+  console.error(`${chalk.red('[!]')} - The app is unbundled. If it is, export the "js-modules" folder from the app and provide it as the --js-modules argument`);
+  console.error(`${chalk.red('[!]')} - The bundle is a binary/encrypted file (ex. Facebook, Instagram). These files are not supported`);
+  console.error(`${chalk.red('[!]')} - The file provided is not a React Native bundle.`);
+  process.exit(1);
 }
 
 if (argValues.entry != null && (!argValues.agressiveCache || !cacheFile)) {
