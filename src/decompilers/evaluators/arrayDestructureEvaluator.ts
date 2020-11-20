@@ -107,8 +107,6 @@ export default class ArrayDestructureEvaluator extends Plugin {
 
       sourceArray.path.node.id = arrayPattern(arrayPatternElements);
 
-      arrayPatternElements.forEach((id, i) => (id != null ? sourceArray.path.scope.registerBinding(id.name, <NodePath>sourceArray.path.get(`id.${i}`)) : null));
-
       if (!this.destructureFunction?.removed) {
         this.destructureFunction?.remove();
       }

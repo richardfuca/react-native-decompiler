@@ -62,9 +62,9 @@ export abstract class Plugin {
 
   protected navigateToModuleBody(path: NodePath<CallExpression>): NodePath<BlockStatement> {
     if (!isFunctionExpression(path.node.arguments[0])) throw new Error('Path is not module body');
-    const argumentsPath = path.get('arguments');
-    if (!(argumentsPath instanceof Array)) throw new Error('Didnt get body path');
-    const bodyPath = argumentsPath[0].get('body');
+    const argumentsPath = path.get('arguments')[0];
+    if (!argumentsPath.isFunctionExpression()) throw new Error('Didnt get body path');
+    const bodyPath = argumentsPath.get('body');
     if (bodyPath instanceof Array || !bodyPath.isBlockStatement()) throw new Error('Didnt get body path');
     return bodyPath;
   }

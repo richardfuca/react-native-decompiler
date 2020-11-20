@@ -23,7 +23,7 @@ export default class RequireMapper extends Plugin {
           path.scope.rename(path.node.callee.name, 'require');
         }
 
-        path.node.arguments[0] = stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`);
+        path.get('arguments')[0].replaceWith(stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`));
         if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {
           const parent = path.parentPath;
           if (!parent.isVariableDeclarator()) return;

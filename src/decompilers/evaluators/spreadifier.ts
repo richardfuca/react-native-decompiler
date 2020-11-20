@@ -19,11 +19,13 @@ export default class Spreadifier extends Plugin {
   getVisitor(): Visitor {
     return {
       CallExpression: (path) => {
-        if (!isMemberExpression(path.node.callee)) return;
-        if (!isIdentifier(path.node.callee.property) || path.node.callee.property.name !== 'apply') return;
-        if (!isIdentifier(path.node.arguments[0]) || !isCallExpression(path.node.arguments[1]) || !isMemberExpression(path.node.arguments[1].callee)) return;
-        if (!isArrayExpression(path.node.arguments[1].callee.object) || !isIdentifier(path.node.arguments[1].callee.property)) return;
-        if (!isExpression(path.node.arguments[1].arguments[0]) || path.node.arguments[1].callee.property.name !== 'concat') return;
+        const callee = path.get('callee');
+        if (!callee.isMemberExpression()) return;
+        if (!isIdentifier(callee.node.property) || callee.node.property.name !== 'apply') return;
+        const args = path.get('arguments');
+        if (!isIdentifier(args[0].node) || !isCallExpression(args[1].node) || !isMemberExpression(args[1].node.callee)) return;
+        if (!isArrayExpression(args[1].node.callee.object) || !isIdentifier(args[1].node.callee.property)) return;
+        if (!isExpression(args[1].node.arguments[0]) || args[1].node.callee.property.name !== 'concat') return;
 
         let expectedThis: Node = path.node.callee;
         while (isMemberExpression(expectedThis)) {
@@ -31,7 +33,7 @@ export default class Spreadifier extends Plugin {
         }
         if (!isIdentifier(expectedThis) || path.node.arguments[0].name !== expectedThis.name) return;
 
-        path.node.callee = path.node.callee.object;
+        callee.replaceWith(callee.node.object);
 
         const newAugments = [...path.node.arguments[1].callee.object.elements, spreadElement(path.node.arguments[1].arguments[0])];
         path.node.arguments = <Expression[]>newAugments;

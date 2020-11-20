@@ -35,3 +35,8 @@ To add a new plugin, add it into the represpective list.
 The plugins are initialized per module, so any data you store in your plugins will only persist for the current module.
 
 If your plugin needs to be run before or after other plugins, adjust the ordering in the list, or modify it's pass position.
+
+Guidelines:
+
+* When doing any modifications to the AST, use the NodePath methods.
+* When you are only doing reading, directly reading from `.node` is acceptable.
