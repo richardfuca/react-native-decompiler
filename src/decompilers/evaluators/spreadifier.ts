@@ -31,11 +31,11 @@ export default class Spreadifier extends Plugin {
         while (isMemberExpression(expectedThis)) {
           expectedThis = expectedThis.object;
         }
-        if (!isIdentifier(expectedThis) || path.node.arguments[0].name !== expectedThis.name) return;
+        if (!isIdentifier(expectedThis) || args[0].node.name !== expectedThis.name) return;
 
         callee.replaceWith(callee.node.object);
 
-        const newAugments = [...path.node.arguments[1].callee.object.elements, spreadElement(path.node.arguments[1].arguments[0])];
+        const newAugments = [...args[1].node.callee.object.elements, spreadElement(args[1].node.arguments[0])];
         path.node.arguments = <Expression[]>newAugments;
       },
     };

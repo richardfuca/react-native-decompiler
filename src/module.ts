@@ -71,10 +71,13 @@ export default class Module {
   }
 
   initalize(): void {
+    const parent = this.path.getStatementParent();
+    if (!parent) throw new Error();
+
     this.originalCode = this.originalCode ?? generator({
       ...this.originalFile.program,
       type: 'Program',
-      body: [this.path.getStatementParent().node],
+      body: [parent.node],
     }, { compact: true }).code;
 
     if (!this.cacheLoaded) {

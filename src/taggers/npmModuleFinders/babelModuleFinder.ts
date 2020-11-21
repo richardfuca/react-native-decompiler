@@ -4,44 +4,37 @@ import ModuleFinder from './moduleFinder';
  * Finds babel modules
  */
 export default class BabelModuleFinder extends ModuleFinder {
+  private readonly moduleMap: Record<string, (RegExp | string)[]> = {
+    '@babel/runtime/helpers/classCallCheck': [
+      'Cannot call a class as a function',
+    ],
+    '@babel/runtime/helpers/toConsumableArray': [
+      /{var .=.\(.\[0]\),.=.\(.\[1]\),.=.\(.\[2]\),.=.\(.\[3]\);.\.exports=function\(.\){return .\(.\)\|\|.\(.\)\|\|.\(.\)\|\|.\(\);};}/,
+    ],
+    '@babel/runtime/helpers/slicedToArray': [
+      /{var .=.\(.\[0]\),.=.\(.\[1]\),.=.\(.\[2]\),.=.\(.\[3]\);.\.exports=function\(.,.\){return .\(.\)\|\|.\(.,.\)\|\|.\(.,.\)\|\|.\(\);};}/,
+    ],
+    '@babel/runtime/helpers/interopRequireDefault': [
+      /.\.exports=function\(.\){return .&&.\.__esModule\?.:{default:.}/,
+      /.\.exports=function\(obj\){return obj&&obj\.__esModule\?obj:{default:obj}/,
+    ],
+    '@babel/runtime/helpers/interopRequireWildcard': [
+      /function .\(\){if\("function"!=typeof WeakMap\)return null;var .=new WeakMap\(\);return .=function\(\){return .;},.;}/,
+    ],
+    '@babel/runtime/helpers/createClass': [
+      /.\.exports=function\(.,.,.\){return .&&.\(.\.prototype,.\),.&&.\(.,.\),.;};/,
+    ],
+    '@babel/runtime/helpers/defineEnumerableProperties': [
+      /.\.exports=function\(.,.\){if\(null==.\)return{};var .,.,.=.\(.,.\);if\(Object\.getOwnPropertySymbols\){var .=Object\.getOwnPropertySymbols\(.\);/,
+    ],
+  };
+
   evaluate(): void {
-    if (!this.module.originalCode) throw new Error();
-
-    if (this.module.moduleCodeStrings.includes('Cannot call a class as a function')) {
-      this.tagAsNpmModule('@babel/runtime/helpers/classCallCheck');
-      return;
-    }
-
-    const arraySpreadRegex = /{var .=.\(.\[0]\),.=.\(.\[1]\),.=.\(.\[2]\),.=.\(.\[3]\);.\.exports=function\(.\){return .\(.\)\|\|.\(.\)\|\|.\(.\)\|\|.\(\);};}/;
-    if (arraySpreadRegex.test(this.module.originalCode)) {
-      this.tagAsNpmModule('@babel/runtime/helpers/toConsumableArray');
-      return;
-    }
-
-    const arrayDestructureRegex = /{var .=.\(.\[0]\),.=.\(.\[1]\),.=.\(.\[2]\),.=.\(.\[3]\);.\.exports=function\(.,.\){return .\(.\)\|\|.\(.,.\)\|\|.\(.,.\)\|\|.\(\);};}/;
-    if (arrayDestructureRegex.test(this.module.originalCode)) {
-      this.tagAsNpmModule('@babel/runtime/helpers/slicedToArray');
-      return;
-    }
-
-    const requireDefaultRegex = /.\.exports=function\(.\){return .&&.\.__esModule\?.:{default:.};};/;
-    if (requireDefaultRegex.test(this.module.originalCode)) {
-      this.tagAsNpmModule('@babel/runtime/helpers/interopRequireDefault');
-    }
-
-    const interopWildcardRegex = /function .\(\){if\("function"!=typeof WeakMap\)return null;var .=new WeakMap\(\);return .=function\(\){return .;},.;}/;
-    if (interopWildcardRegex.test(this.module.originalCode)) {
-      this.tagAsNpmModule('@babel/runtime/helpers/interopRequireWildcard');
-    }
-
-    const createClassRegex = /.\.exports=function\(.,.,.\){return .&&.\(.\.prototype,.\),.&&.\(.,.\),.;};/;
-    if (createClassRegex.test(this.module.originalCode)) {
-      this.tagAsNpmModule('@babel/runtime/helpers/createClass');
-    }
-
-    const enumerablePropRegex = /.\.exports=function\(.,.\){if\(null==.\)return{};var .,.,.=.\(.,.\);if\(Object\.getOwnPropertySymbols\){var .=Object\.getOwnPropertySymbols\(.\);/;
-    if (enumerablePropRegex.test(this.module.originalCode)) {
-      this.tagAsNpmModule('@babel/runtime/helpers/defineEnumerableProperties');
-    }
+    Object.keys(this.moduleMap).forEach((moduleName) => {
+      const matchers = this.moduleMap[moduleName];
+      if (matchers.some((matcher) => (matcher instanceof RegExp ? matcher.test(this.module.originalCode) : this.module.moduleCodeStrings.includes(matcher)))) {
+        this.tagAsNpmModule(moduleName);
+      }
+    });
   }
 }

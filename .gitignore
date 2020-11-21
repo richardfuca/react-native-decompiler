@@ -1,7 +1,7 @@
 output
 .vscode
 node_modules
-*.bundle
+*.bundle*
 run.*
 out
 js-modules
