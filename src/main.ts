@@ -106,14 +106,14 @@ if (cacheFile) {
     const canIgnoreModuleBody = argValues.agressiveCache && cached.isNpmModule && cached.originalCode.length > 128;
     const originalFile = babylon.parse(canIgnoreModuleBody ? `__d(function(g,r,i,a,m,e,d){},${cached.moduleId},[])` : cached.originalCode);
     traverse(originalFile, {
-      CallExpression(path) {
-        if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
-          const module = new Module(path, originalFile);
+      CallExpression(nodePath) {
+        if (isIdentifier(nodePath.node.callee) && nodePath.node.callee.name === '__d') {
+          const module = new Module(nodePath, originalFile);
           module.loadCache(cached);
           modules[module.moduleId] = module;
           progressBar.increment();
         }
-        path.skip();
+        nodePath.skip();
       },
     });
   });
@@ -128,12 +128,12 @@ if (cacheFile) {
   console.log('Finding modules...');
 
   traverse(originalFile, {
-    CallExpression(path) {
-      if (isIdentifier(path.node.callee) && path.node.callee.name === '__d') {
-        const module = new Module(path, originalFile);
+    CallExpression(nodePath) {
+      if (isIdentifier(nodePath.node.callee) && nodePath.node.callee.name === '__d') {
+        const module = new Module(nodePath, originalFile);
         modules[module.moduleId] = module;
       }
-      path.skip();
+      nodePath.skip();
     },
   });
 }
