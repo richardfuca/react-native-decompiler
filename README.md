@@ -13,15 +13,20 @@ Decompiles React Native `index.android.bundle` JS files.
 Example command: `node ./out/main.js -i index.android.bundle -o ./output`, `ts-node ./src/main.js -i index.android.bundle -o ./output`
 
 Command params:
-- `-i` (required) - the path to the import bundle
+- `-i` (required) - input file/folder
 - `-o` (required) - the path to the output folder
-- `-b` - the path to the bundles folder for unbundled apps. Assumed to be "./js-modules" if not set.
 - `-e` - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
 - `--noEslint` - does not run ESLint after doing decompilation
 - `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
 - `--agressiveCache` - skips some cache checks at the expense of possible cache desync
+
+## Valid inputs
+
+The following input formats are currently supported:
+- A single `index.android.bundle` file that contains all modules (most cases)
+- A folder containing React Native modules (usually called `js-modules`) in "unbundled" apps
 
 # Extending
 

@@ -19,11 +19,11 @@ export default class PassthroughModuleRemapper extends Plugin {
     return {
       AssignmentExpression: (path) => {
         if (!isMemberExpression(path.node.left) || !isIdentifier(path.node.left?.object) || !isIdentifier(path.node.left?.property)) return;
-        if (path.scope.getBindingIdentifier(path.node.left.object.name)?.start !== this.module.moduleObjParam.start) return;
+        if (path.scope.getBindingIdentifier(path.node.left.object.name)?.start !== this.module.moduleParam?.start) return;
         if (path.node.left.property.name !== 'exports') return;
 
         if (!isCallExpression(path.node.right) || !isIdentifier(path.node.right.callee)) return;
-        if (path.scope.getBindingIdentifier(path.node.right.callee.name)?.start !== this.module.requireParam.start) return;
+        if (path.scope.getBindingIdentifier(path.node.right.callee.name)?.start !== this.module.requireParam?.start) return;
         if (!isMemberExpression(path.node.right.arguments[0]) || !isNumericLiteral(path.node.right?.arguments[0].property)) return;
 
         const passthroughDependency = this.moduleList[this.module.dependencies[path.node.right?.arguments[0].property.value]];

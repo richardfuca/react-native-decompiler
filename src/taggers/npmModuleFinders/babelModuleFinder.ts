@@ -32,7 +32,7 @@ export default class BabelModuleFinder extends ModuleFinder {
   evaluate(): void {
     Object.keys(this.moduleMap).forEach((moduleName) => {
       const matchers = this.moduleMap[moduleName];
-      if (matchers.some((matcher) => (matcher instanceof RegExp ? matcher.test(this.module.originalCode) : this.module.moduleCodeStrings.includes(matcher)))) {
+      if (matchers.some((matcher) => (matcher instanceof RegExp ? matcher.test(this.module.originalCode) : this.module.moduleStrings.includes(matcher)))) {
         this.tagAsNpmModule(moduleName);
       }
     });

@@ -18,13 +18,13 @@ export default class WebpackRenamer extends Plugin {
         if (this.moduleRenamed && this.exportsRenamed && this.globalsRenamed) return;
         if (!isMemberExpression(path.node.left) || !isIdentifier(path.node.left.object)) return;
         const bindingStart = path.scope.getBindingIdentifier(path.node.left.object.name)?.start;
-        if (!this.moduleRenamed && bindingStart === this.module.moduleObjParam.start) {
+        if (!this.moduleRenamed && bindingStart === this.module.moduleParam?.start) {
           this.moduleRenamed = true;
           path.scope.rename(path.node.left.object.name, 'module');
-        } else if (!this.exportsRenamed && bindingStart === this.module.exportsParam.start) {
+        } else if (!this.exportsRenamed && bindingStart === this.module.exportsParam?.start) {
           this.exportsRenamed = true;
           path.scope.rename(path.node.left.object.name, 'exports');
-        } else if (!this.globalsRenamed && bindingStart === this.module.globalsParam.start) {
+        } else if (!this.globalsRenamed && bindingStart === this.module.globalsParam?.start) {
           this.globalsRenamed = true;
           path.scope.rename(path.node.left.object.name, 'globals');
         }

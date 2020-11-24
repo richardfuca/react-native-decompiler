@@ -21,5 +21,14 @@ module.exports = {
     "class-methods-use-this": "off",
     "prefer-destructuring": "off",
     "no-param-reassign": ["error", { props: false }],
+    "@typescript-eslint/no-empty-function": ['error', {
+      allow: [
+        'arrowFunctions',
+        'functions',
+        'methods',
+        'private-constructors',
+        'protected-constructors',
+      ]
+    }]
   },
 };

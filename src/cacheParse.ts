@@ -1,29 +1,30 @@
 import crypto from 'crypto';
-import fsExtra from 'fs-extra';
+import fs from 'fs-extra';
 import Module from './module';
-import CachedModule, { CachedFile } from './cacheModule';
+import { CachedFile } from './interfaces/cachedFile';
+import CmdArgs from './interfaces/cmdArgs';
 
 export default class CacheParse {
-  originalFile: string;
-  cacheFile: string;
+  cmdArgs: CmdArgs;
 
-  constructor(originalFile: string, cacheFile: string) {
-    this.originalFile = originalFile;
-    this.cacheFile = cacheFile;
+  constructor(cmdArgs: CmdArgs) {
+    this.cmdArgs = cmdArgs;
   }
 
-  writeCache(file: string, moduleList: Module[]): void {
-    fsExtra.writeJSONSync(file, <CachedFile>{
-      checksum: crypto.createHash('md5').update(this.originalFile).digest('hex'),
-      modules: moduleList.filter((ele) => ele != null).map((module): CachedModule => ({
-        ignored: module.ignored,
-        isNpmModule: module.isNpmModule,
-        moduleId: module.moduleId,
-        moduleName: module.moduleName,
-        moduleStrings: module.moduleCodeStrings,
-        npmModuleVarName: module.npmModuleVarName,
-        originalCode: module.originalCode,
-      })),
+  async writeCache(filename: string, moduleList: Module[]): Promise<void> {
+    return fs.writeJSON<CachedFile>(filename, {
+      checksum: await this.generateInputChecksums(this.cmdArgs.in),
+      modules: moduleList.filter((ele) => ele != null).map((e) => e.toCache()),
     });
+  }
+
+  private async generateInputChecksums(input: string): Promise<string[]> {
+    if ((await fs.lstat(input)).isDirectory()) {
+      return fs.readdir(input)
+        .then((fileNames) => Promise.all(fileNames.map((file) => fs.readFile(file))))
+        .then((files) => files.map((file) => crypto.createHash('md5').update(file).digest('hex')));
+    }
+
+    return [crypto.createHash('md5').update(await fs.readFile(input)).digest('hex')];
   }
 }

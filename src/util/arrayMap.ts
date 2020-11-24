@@ -1,3 +1,6 @@
+/**
+ * Map that supports multiple values in one key
+ */
 export default class ArrayMap<K, V> extends Map<K, V[]> {
   /**
    * Gets the given key array
@@ -15,7 +18,7 @@ export default class ArrayMap<K, V> extends Map<K, V[]> {
    * @param key The key to find
    */
   has(key: K): boolean {
-    return this.get(key).length === 0;
+    return this.get(key).length > 0;
   }
 
   /**

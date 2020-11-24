@@ -1,5 +1,5 @@
 import { NodePath } from '@babel/traverse';
-import { CallExpression } from '@babel/types';
+import { FunctionExpression } from '@babel/types';
 import { Plugin } from '../../plugin';
 
 export default abstract class ModuleFinder extends Plugin {
@@ -16,5 +16,5 @@ export default abstract class ModuleFinder extends Plugin {
     this.module.npmModuleVarName = varName;
   }
 
-  abstract evaluate(path: NodePath<CallExpression>): void;
+  abstract evaluate(path: NodePath<FunctionExpression>): void;
 }

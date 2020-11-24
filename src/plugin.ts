@@ -1,13 +1,13 @@
 import {
   CallExpression,
   BlockStatement,
-  isFunctionExpression,
   isIdentifier,
   isMemberExpression,
   isNumericLiteral,
   isStringLiteral,
   expressionStatement,
   isStatement,
+  FunctionExpression,
 } from '@babel/types';
 import generator from '@babel/generator';
 import { NodePath, Visitor } from '@babel/traverse';
@@ -38,7 +38,7 @@ export abstract class Plugin {
   getVisitor?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): Visitor;
 
   /** Do a full evaluation. Use this for advanced plugins, or for plugins that don't do traversals. */
-  evaluate?(block: NodePath<CallExpression>, rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
+  evaluate?(block: NodePath<FunctionExpression>, rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
 
   /** Runs after the pass completes. Note that the AST of the module may have changed if you stored stuff in getVisitor or evaluate. */
   afterPass?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
@@ -60,18 +60,15 @@ export abstract class Plugin {
     }).code;
   }
 
-  protected navigateToModuleBody(path: NodePath<CallExpression>): NodePath<BlockStatement> {
-    if (!isFunctionExpression(path.node.arguments[0])) throw new Error('Path is not module body');
-    const argumentsPath = path.get('arguments')[0];
-    if (!argumentsPath.isFunctionExpression()) throw new Error('Didnt get body path');
-    const bodyPath = argumentsPath.get('body');
+  protected navigateToModuleBody(path: NodePath<FunctionExpression>): NodePath<BlockStatement> {
+    const bodyPath = path.get('body');
     if (bodyPath instanceof Array || !bodyPath.isBlockStatement()) throw new Error('Didnt get body path');
     return bodyPath;
   }
 
   protected getModuleDependency(path: NodePath<CallExpression>): Module | null {
     if (!isIdentifier(path.node.callee) || (!isMemberExpression(path.node.arguments[0]) && !isStringLiteral(path.node.arguments[0]))) return null;
-    if (path.scope.getBindingIdentifier(path.node.callee.name)?.start !== this.module.requireParam.start) return null;
+    if (path.scope.getBindingIdentifier(path.node.callee.name)?.start !== this.module.requireParam?.start) return null;
 
     if (isMemberExpression(path.node.arguments[0]) && isNumericLiteral(path.node.arguments[0].property)) {
       return this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]];

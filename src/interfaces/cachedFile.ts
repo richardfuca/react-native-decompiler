@@ -1,14 +1,18 @@
+import ParamMappings from './paramMappings';
+
 export interface CachedFile {
-  checksum: string;
+  checksum: string[];
   modules: CachedModule[];
 }
 
-export default interface CachedModule {
+export interface CachedModule {
+  code: string;
   moduleId: number;
-  originalCode: string;
+  dependencies: number[];
   moduleStrings: string[];
   moduleName: string;
   npmModuleVarName?: string;
   isNpmModule: boolean;
   ignored: boolean;
+  paramMappings: ParamMappings;
 }

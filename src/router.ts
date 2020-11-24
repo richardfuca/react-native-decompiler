@@ -40,10 +40,10 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
           if (plugin.pass !== pass) return;
           if (plugin.evaluate && this.performance) {
             startTime = performance.now();
-            plugin.evaluate(module.path, this.rerunPlugin);
+            plugin.evaluate(module.rootPath, this.rerunPlugin);
             Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
           } else if (plugin.evaluate) {
-            plugin.evaluate(module.path, this.rerunPlugin);
+            plugin.evaluate(module.rootPath, this.rerunPlugin);
           } else if (plugin.getVisitor) {
             /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
             const visitor: any = plugin.getVisitor(this.rerunPlugin);
@@ -74,7 +74,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
         /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
         if (Object.keys(visitor).length > 0) {
           startTime = performance.now();
-          module.path.traverse(visitor);
+          module.rootPath.traverse(visitor);
           Router.traverseTimeTaken += performance.now() - startTime;
         }
         this.list.forEach((plugin, i) => {
@@ -102,9 +102,9 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
   rerunPlugin = (PluginToRun: PluginConstructor): void => {
     const plugin = new PluginToRun(this.module, this.moduleList);
     if (plugin.evaluate) {
-      plugin.evaluate(this.module.path, this.rerunPlugin);
+      plugin.evaluate(this.module.rootPath, this.rerunPlugin);
     } else if (plugin.getVisitor) {
-      this.module.path.traverse(plugin.getVisitor(this.rerunPlugin));
+      this.module.rootPath.traverse(plugin.getVisitor(this.rerunPlugin));
     } else {
       throw new Error('Plugin does not have getVisitor nor evaluate');
     }
