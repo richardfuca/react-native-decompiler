@@ -220,7 +220,7 @@ Command params:
 
     progressBar.stop();
 
-    if (true || argValues.entry && !argValues.agressiveCache) {
+    if (argValues.entry && !argValues.agressiveCache) {
       console.log('Writing to cache...');
       await new CacheParse(argValues).writeCache(cacheFileName, modules);
     }

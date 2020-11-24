@@ -2,7 +2,7 @@
 
 **DOES NOT SUPPORT ENCRYPTED/BINARY (FACEBOOK, INSTAGRAM) BUNDLES**
 
-Decompiles React Native `index.android.bundle` JS files. Some Webpack files too!
+Decompiles React Native `index.android.bundle` JS files. Some Webpack files too (see limitations)!
 
 # Usage
 
@@ -29,6 +29,7 @@ The following input formats are currently supported:
 - A single `index.android.bundle` file that contains all modules (most cases)
 - A folder containing React Native modules (usually called `js-modules`) in "unbundled" apps
 - Certain Webpack files (in either single file format or folder for chunked apps)
+  - Decompilation support is very limited, `--unpackOnly` flag is recommended!
 
 # Extending
 
