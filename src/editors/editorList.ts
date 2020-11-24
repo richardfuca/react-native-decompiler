@@ -4,7 +4,6 @@ import EsModuleCleaner from './cleaners/esModuleCleaner';
 import { PluginConstructor } from '../plugin';
 
 const editorList: PluginConstructor[] = [
-  // VarSplitter,
   CommaOperatorUnwrapper,
   // pass 2
   RequiresAtTop,

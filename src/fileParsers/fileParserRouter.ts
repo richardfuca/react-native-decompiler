@@ -4,6 +4,7 @@ import CacheParser from './cacheParser';
 import FileParser from './fileParser';
 import ReactNativeFolderParser from './reactNativeFolderParser';
 import ReactNativeSingleParser from './reactNativeSingleParser';
+import WebpackSingleParser from './webpackSingleParser';
 
 /**
  * Attempts to route the cmd args to a valid file parser
@@ -13,6 +14,7 @@ export default class FileParserRouter {
     new CacheParser(),
     new ReactNativeSingleParser(),
     new ReactNativeFolderParser(),
+    new WebpackSingleParser(),
   ];
 
   async route(args: CmdArgs): Promise<Module[]> {

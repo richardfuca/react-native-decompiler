@@ -34,6 +34,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
       if (module.failedToDecompile) return;
 
       for (let pass = 1; pass <= this.maxPass; pass += 1) {
+        module.rootPath.scope.crawl();
         let startTime = performance.now();
         const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
         this.list.forEach((plugin, i) => {

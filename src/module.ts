@@ -88,6 +88,21 @@ export default class Module {
     if (!this.moduleStrings) throw new Error('Module strings is required');
   }
 
+  unpack(): void {
+    if (this.globalsParam?.name) {
+      this.rootPath.scope.rename(this.globalsParam?.name, 'globals');
+    }
+    if (this.requireParam?.name) {
+      this.rootPath.scope.rename(this.requireParam?.name, 'require');
+    }
+    if (this.moduleParam?.name) {
+      this.rootPath.scope.rename(this.moduleParam?.name, 'module');
+    }
+    if (this.exportsParam?.name) {
+      this.rootPath.scope.rename(this.exportsParam?.name, 'exports');
+    }
+  }
+
   toCache(): CachedModule {
     return {
       code: this.originalCode,

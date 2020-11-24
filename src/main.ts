@@ -36,6 +36,7 @@ function calculateModulesToIgnore(argValues: CmdArgs, modules: Module[]): Module
       { name: 'noEslint', type: Boolean },
       { name: 'decompileIgnored', type: Boolean },
       { name: 'agressiveCache', type: Boolean },
+      { name: 'unpackOnly', type: Boolean },
     ]);
     if (!argValues.in || !argValues.out) {
       console.log(`react-native-decompiler
@@ -49,6 +50,7 @@ Command params:
 -p - performance monitoring flag, will print out runtime for each decompiler plugin
 -v - verbose flag, does not include debug logging (use DEBUG=react-native-decompiler:* env flag for that)
 --noEslint - does not run ESLint after doing decompilation
+--unpackOnly - only unpacks the app with no other adjustments
 --decompileIgnored - decompile ignored modules(modules are generally ignored if they are flagged as an NPM module)
 --agressiveCache - skips some cache checks at the expense of possible cache desync`);
       process.exit(1);
@@ -113,74 +115,79 @@ Command params:
     progressBar.start(nonIgnoredModules.length, 0);
     nonIgnoredModules.forEach((module) => {
       module.validate();
+      module.unpack();
 
       progressBar.increment();
     });
 
     progressBar.stop();
     console.log(`Took ${performance.now() - startTime}ms`);
-    startTime = performance.now();
-    console.log('Tagging...');
-    progressBar.start(nonIgnoredModules.length, 0);
-    nonIgnoredModules.forEach((module) => {
-      const router = new Router(taggerList, module, modules, argValues.performance);
-      router.parse(module);
 
-      progressBar.increment();
-    });
+    if (!argValues.unpackOnly) {
+      startTime = performance.now();
+      console.log('Tagging...');
+      progressBar.start(nonIgnoredModules.length, 0);
+      nonIgnoredModules.forEach((module) => {
+        const router = new Router(taggerList, module, modules, argValues.performance);
+        router.parse(module);
 
-    progressBar.stop();
-    if (argValues.performance) {
-      console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
-      console.log(Router.timeTaken);
-      Router.timeTaken = {};
-      Router.traverseTimeTaken = 0;
-    }
-    console.log(`Took ${performance.now() - startTime}ms`);
-    startTime = performance.now();
-
-    console.log('Filtering out modules only depended on ignored modules...');
-
-    let modulesToIgnore: Module[] = [];
-
-    modulesToIgnore = calculateModulesToIgnore(argValues, modules);
-    while (modulesToIgnore.length) {
-      modulesToIgnore.forEach((mod) => {
-        mod.ignored = true;
+        progressBar.increment();
       });
+
+      progressBar.stop();
+      if (argValues.performance) {
+        console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
+        console.log(Router.timeTaken);
+        Router.timeTaken = {};
+        Router.traverseTimeTaken = 0;
+      }
+      console.log(`Took ${performance.now() - startTime}ms`);
+      startTime = performance.now();
+
+      console.log('Filtering out modules only depended on ignored modules...');
+
+      let modulesToIgnore: Module[] = [];
+
       modulesToIgnore = calculateModulesToIgnore(argValues, modules);
-    }
+      while (modulesToIgnore.length) {
+        modulesToIgnore.forEach((mod) => {
+          mod.ignored = true;
+        });
+        modulesToIgnore = calculateModulesToIgnore(argValues, modules);
+      }
 
-    if (argValues.verbose) {
-      modules.forEach((mod) => {
-        if (mod.ignored && !mod.isNpmModule) return;
-        const dependentModules = modules.filter((otherMod) => !otherMod.ignored && otherMod.dependencies.includes(mod.moduleId));
-        console.debug(mod.moduleId, mod.moduleName, mod.isNpmModule ? ['X'] : dependentModules.map((m) => m.moduleId));
+      if (argValues.verbose) {
+        modules.forEach((mod) => {
+          if (mod.ignored && !mod.isNpmModule) return;
+          const dependentModules = modules.filter((otherMod) => !otherMod.ignored && otherMod.dependencies.includes(mod.moduleId));
+          console.debug(mod.moduleId, mod.moduleName, mod.isNpmModule ? ['X'] : dependentModules.map((m) => m.moduleId));
+        });
+      }
+
+      nonIgnoredModules = modules.filter((mod) => argValues.decompileIgnored || !mod.ignored);
+
+      console.log(`Took ${performance.now() - startTime}ms`);
+      startTime = performance.now();
+      console.log('Decompiling...');
+      progressBar.start(nonIgnoredModules.length, 0);
+      nonIgnoredModules.forEach((module) => {
+        const editorRouter = new Router(editorList, module, modules, argValues.performance);
+        editorRouter.parse(module);
+
+        const decompilerRouter = new Router(decompilerList, module, modules, argValues.performance);
+        decompilerRouter.parse(module);
+
+        progressBar.increment();
       });
+
+      progressBar.stop();
+      if (argValues.performance) {
+        console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
+        console.log(Router.timeTaken);
+      }
+      console.log(`Took ${performance.now() - startTime}ms`);
     }
 
-    nonIgnoredModules = modules.filter((mod) => argValues.decompileIgnored || !mod.ignored);
-
-    console.log(`Took ${performance.now() - startTime}ms`);
-    startTime = performance.now();
-    console.log('Decompiling...');
-    progressBar.start(nonIgnoredModules.length, 0);
-    nonIgnoredModules.forEach((module) => {
-      const editorRouter = new Router(editorList, module, modules, argValues.performance);
-      editorRouter.parse(module);
-
-      const decompilerRouter = new Router(decompilerList, module, modules, argValues.performance);
-      decompilerRouter.parse(module);
-
-      progressBar.increment();
-    });
-
-    progressBar.stop();
-    if (argValues.performance) {
-      console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
-      console.log(Router.timeTaken);
-    }
-    console.log(`Took ${performance.now() - startTime}ms`);
     startTime = performance.now();
     console.log('Generating code...');
     progressBar.start(nonIgnoredModules.length, 0);
@@ -213,7 +220,7 @@ Command params:
 
     progressBar.stop();
 
-    if (argValues.entry && !argValues.agressiveCache) {
+    if (true || argValues.entry && !argValues.agressiveCache) {
       console.log('Writing to cache...');
       await new CacheParse(argValues).writeCache(cacheFileName, modules);
     }
@@ -244,7 +251,7 @@ Command params:
       console.log('Done!');
     }
   } catch (e) {
-    console.error(`${chalk.red('[!]')} Error occurred!`);
+    console.error(`${chalk.red('[!]')} Error occurred! You should probably report this.`);
     console.error(e);
   }
 })();

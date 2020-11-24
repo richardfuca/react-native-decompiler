@@ -61,9 +61,7 @@ export abstract class Plugin {
   }
 
   protected navigateToModuleBody(path: NodePath<FunctionExpression>): NodePath<BlockStatement> {
-    const bodyPath = path.get('body');
-    if (bodyPath instanceof Array || !bodyPath.isBlockStatement()) throw new Error('Didnt get body path');
-    return bodyPath;
+    return path.get('body');
   }
 
   protected getModuleDependency(path: NodePath<CallExpression>): Module | null {

@@ -2,7 +2,7 @@
 
 **DOES NOT SUPPORT ENCRYPTED/BINARY (FACEBOOK, INSTAGRAM) BUNDLES**
 
-Decompiles React Native `index.android.bundle` JS files.
+Decompiles React Native `index.android.bundle` JS files. Some Webpack files too!
 
 # Usage
 
@@ -19,6 +19,7 @@ Command params:
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
 - `--noEslint` - does not run ESLint after doing decompilation
+- `--unpackOnly` - only unpacks the app with no other adjustments
 - `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
 - `--agressiveCache` - skips some cache checks at the expense of possible cache desync
 
@@ -27,6 +28,7 @@ Command params:
 The following input formats are currently supported:
 - A single `index.android.bundle` file that contains all modules (most cases)
 - A folder containing React Native modules (usually called `js-modules`) in "unbundled" apps
+- Certain Webpack files (in either single file format or folder for chunked apps)
 
 # Extending
 
