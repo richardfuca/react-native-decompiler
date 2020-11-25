@@ -9,5 +9,6 @@ export default interface CmdArgs {
   /** skips some cache checks at the expense of possible cache desync */
   agressiveCache: boolean;
   noEslint: boolean;
+  noPrettier: boolean;
   unpackOnly: boolean;
 }

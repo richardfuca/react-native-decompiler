@@ -6,7 +6,7 @@ import ModuleFinder from './moduleFinder';
 export default class BabelModuleFinder extends ModuleFinder {
   private readonly moduleMap: Record<string, (RegExp | string)[]> = {
     '@babel/runtime/helpers/classCallCheck': [
-      'Cannot call a class as a function',
+      // 'Cannot call a class as a function',
     ],
     '@babel/runtime/helpers/toConsumableArray': [
       /{var .=.\(.\[0]\),.=.\(.\[1]\),.=.\(.\[2]\),.=.\(.\[3]\);.\.exports=function\(.\){return .\(.\)\|\|.\(.\)\|\|.\(.\)\|\|.\(\);};}/,

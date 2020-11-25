@@ -19,7 +19,6 @@ const eslintConfig: Linter.Config = {
       allowNamedFunctions: false,
       allowUnboundThis: true,
     }],
-    quotes: ['error', 'single', { avoidEscape: true }],
     eqeqeq: ['error', 'always', { null: 'ignore' }],
     semi: ['error', 'always'],
     'arrow-body-style': ['error', 'as-needed', {

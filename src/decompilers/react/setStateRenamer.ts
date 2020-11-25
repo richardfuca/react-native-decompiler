@@ -5,7 +5,7 @@ import {
   isMemberExpression,
   isIdentifier,
 } from '@babel/types';
-import { Plugin } from '../../../plugin';
+import { Plugin } from '../../plugin';
 
 /**
  * Does some renaming on Reach Hook setStates for clarity (changes setter function to `setX`)

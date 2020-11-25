@@ -31,6 +31,7 @@ export default class Module {
 
   originalCode = '';
   moduleStrings: string[] = [];
+  moduleComments: string[] = [];
 
   // modifiable fields
   /** The name of the module */
@@ -81,11 +82,16 @@ export default class Module {
         this.moduleStrings.push(path.node.value);
       },
     });
+
+    this.moduleComments = this.originalFile.comments
+      ?.filter((comment) => this.rootPath.node.start && this.rootPath.node.end && comment.start > this.rootPath.node.start && comment.end < this.rootPath.node.end)
+      ?.map((comment) => comment.value) || [];
   }
 
   validate(): void {
     if (!this.originalCode) throw new Error('Original code is required');
     if (!this.moduleStrings) throw new Error('Module strings is required');
+    if (!this.moduleComments) throw new Error('Module comments is required');
   }
 
   unpack(): void {
@@ -112,6 +118,7 @@ export default class Module {
       moduleId: this.moduleId,
       moduleName: this.moduleName,
       moduleStrings: this.moduleStrings,
+      moduleComments: this.moduleComments,
       paramMappings: this.paramMappings,
       npmModuleVarName: this.npmModuleVarName,
     };

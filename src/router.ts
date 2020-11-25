@@ -5,6 +5,7 @@ import Module from './module';
 
 export default class Router<T extends Plugin, TConstructor extends PluginConstructor<T>> {
   static traverseTimeTaken = 0;
+  static recrawlTimeTaken = 0;
   static timeTaken: { [index: string]: number } = {};
 
   private readonly module: Module;
@@ -34,8 +35,10 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
       if (module.failedToDecompile) return;
 
       for (let pass = 1; pass <= this.maxPass; pass += 1) {
-        module.rootPath.scope.crawl();
         let startTime = performance.now();
+        // module.rootPath.scope.crawl();
+        // Router.recrawlTimeTaken += performance.now() - startTime;
+        startTime = performance.now();
         const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
         this.list.forEach((plugin, i) => {
           if (plugin.pass !== pass) return;

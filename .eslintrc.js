@@ -15,7 +15,8 @@ module.exports = {
     'airbnb-typescript/base',
   ],
   rules: {
-    "max-len": ["warn", 180],
+    "max-len": ["warn", { code: 180, ignoreComments: true }],
+    "no-empty": ["error", { "allowEmptyCatch": true }],
     "no-console": "off",
     "@typescript-eslint/lines-between-class-members": "off",
     "class-methods-use-this": "off",

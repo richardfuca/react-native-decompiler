@@ -1,5 +1,6 @@
 import fsExtra from 'fs-extra';
 import { performance } from 'perf_hooks';
+import prettier from 'prettier';
 import generator from '@babel/generator';
 import commandLineArgs from 'command-line-args';
 import CliProgress from 'cli-progress';
@@ -34,6 +35,7 @@ function calculateModulesToIgnore(argValues: CmdArgs, modules: Module[]): Module
       { name: 'performance', alias: 'p', type: Boolean },
       { name: 'verbose', alias: 'v', type: Boolean },
       { name: 'noEslint', type: Boolean },
+      { name: 'noPrettier', type: Boolean },
       { name: 'decompileIgnored', type: Boolean },
       { name: 'agressiveCache', type: Boolean },
       { name: 'unpackOnly', type: Boolean },
@@ -50,6 +52,7 @@ Command params:
 -p - performance monitoring flag, will print out runtime for each decompiler plugin
 -v - verbose flag, does not include debug logging (use DEBUG=react-native-decompiler:* env flag for that)
 --noEslint - does not run ESLint after doing decompilation
+--noPrettier - does not run Prettier after doing decompilation
 --unpackOnly - only unpacks the app with no other adjustments
 --decompileIgnored - decompile ignored modules(modules are generally ignored if they are flagged as an NPM module)
 --agressiveCache - skips some cache checks at the expense of possible cache desync`);
@@ -71,12 +74,13 @@ Command params:
     const fileParserRouter = new FileParserRouter();
     const modules = await fileParserRouter.route(argValues);
 
-    if (modules.length === 0) {
+    if (modules == null || modules.length === 0) {
       console.error(`${chalk.red('[!]')} No modules were found!`);
       console.error(`${chalk.red('[!]')} Possible reasons:`);
-      console.error(`${chalk.red('[!]')} - The app is unbundled. If it is, export the "js-modules" folder from the app and provide it as the --js-modules argument`);
+      console.error(`${chalk.red('[!]')} - The React Native app is unbundled. If it is, export the "js-modules" folder from the app and provide it as the --js-modules argument`);
       console.error(`${chalk.red('[!]')} - The bundle is a binary/encrypted file (ex. Facebook, Instagram). These files are not supported`);
-      console.error(`${chalk.red('[!]')} - The file provided is not a React Native bundle.`);
+      console.error(`${chalk.red('[!]')} - The provided Webpack bundle input is not or does not contain the entrypoint bundle`);
+      console.error(`${chalk.red('[!]')} - The file provided is not a React Native or Webpack bundle.`);
       process.exit(1);
     }
 
@@ -183,6 +187,7 @@ Command params:
       progressBar.stop();
       if (argValues.performance) {
         console.log(`Traversal took ${Router.traverseTimeTaken}ms`);
+        console.log(`Recrawl took ${Router.recrawlTimeTaken}ms`);
         console.log(Router.timeTaken);
       }
       console.log(`Took ${performance.now() - startTime}ms`);
@@ -194,12 +199,20 @@ Command params:
     const generatedFiles = nonIgnoredModules.map((module) => {
       const returnValue = {
         name: module.moduleId,
+        extension: module.tags.includes('jsx') ? 'jsx' : 'js',
         code: generator({
           ...module.originalFile.program,
           type: 'Program',
           body: module.moduleCode.body,
         }).code,
       };
+      if (!argValues.noPrettier) {
+        try {
+          returnValue.code = prettier.format(returnValue.code, { parser: 'babel', singleQuote: true });
+        } catch (e) {
+
+        }
+      }
       progressBar.increment();
       return returnValue;
     });
@@ -211,9 +224,9 @@ Command params:
     progressBar.start(nonIgnoredModules.length, 0);
 
     generatedFiles.forEach((file) => {
-      const filePath = `${argValues.out}/${file.name}.js`;
+      const filePath = `${argValues.out}/${file.name}.${file.extension}`;
       if (!fsExtra.existsSync(filePath) || fsExtra.readFileSync(filePath, 'utf-8') !== file.code) {
-        fsExtra.writeFileSync(`${argValues.out}/${file.name}.js`, file.code);
+        fsExtra.writeFileSync(filePath, file.code);
       }
       progressBar.increment();
     });

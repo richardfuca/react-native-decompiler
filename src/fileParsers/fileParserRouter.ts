@@ -4,6 +4,7 @@ import CacheParser from './cacheParser';
 import FileParser from './fileParser';
 import ReactNativeFolderParser from './reactNativeFolderParser';
 import ReactNativeSingleParser from './reactNativeSingleParser';
+import WebpackFolderParser from './webpackFolderParser';
 import WebpackSingleParser from './webpackSingleParser';
 
 /**
@@ -15,13 +16,14 @@ export default class FileParserRouter {
     new ReactNativeSingleParser(),
     new ReactNativeFolderParser(),
     new WebpackSingleParser(),
+    new WebpackFolderParser(),
   ];
 
-  async route(args: CmdArgs): Promise<Module[]> {
+  async route(args: CmdArgs): Promise<Module[] | null> {
     const fileParser = await Promise.all(this.list.map((router) => router.canParse(args)))
       .then((results) => this.list[results.findIndex((e) => e)]);
 
-    if (!fileParser) throw new Error('Failed to match a parser with the given input, is this a supported bundle?');
+    if (!fileParser) return null;
 
     return fileParser.parse(args);
   }

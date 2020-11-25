@@ -1,16 +1,17 @@
 import fs from 'fs-extra';
+import path from 'path';
 import * as babylon from '@babel/parser';
 import CmdArgs from '../interfaces/cmdArgs';
 import Module from '../module';
 import FileParser from './fileParser';
 import WebpackParser from './webpackParser';
 
-export default class WebpackSingleParser extends WebpackParser implements FileParser {
+export default class WebpackFolderParser extends WebpackParser implements FileParser {
   async canParse(args: CmdArgs): Promise<boolean> {
     try {
-      const file = await fs.readFile(args.in, 'utf8');
+      const fileNames = await fs.readdir(args.in);
 
-      return file.includes('window.webpackHotUpdate');
+      return fileNames.some((fileName) => fs.readFileSync(path.join(args.in, fileName), 'utf8').includes('window.webpackHotUpdate'));
     } catch (e) {
       return false;
     }
@@ -20,8 +21,9 @@ export default class WebpackSingleParser extends WebpackParser implements FilePa
     console.log('Parsing JS...');
     this.startTimer('parse-js');
 
-    const file = await fs.readFile(args.in, 'utf8');
-    const ast = babylon.parse(file);
+    const fileNames = await fs.readdir(args.in);
+    const files = await Promise.all(fileNames.map((fileName) => fs.readFile(path.join(args.in, fileName), 'utf8')));
+    const asts = files.map((file) => babylon.parse(file));
 
     this.stopAndPrintTime('parse-js');
 
@@ -30,7 +32,7 @@ export default class WebpackSingleParser extends WebpackParser implements FilePa
     console.log('Finding modules...');
     this.startTimer('find-modules');
 
-    this.parseAst(ast, modules);
+    asts.forEach((ast) => this.parseAst(ast, modules));
 
     this.stopAndPrintTime('find-modules');
 

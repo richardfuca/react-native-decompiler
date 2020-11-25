@@ -36,7 +36,7 @@ export default class CommaOperatorUnwrapper extends Plugin {
           this.debugLog(this.debugPathToCode(path));
           this.debugLog('---');
 
-          init.get('expressions').filter((expression) => {
+          const validExpressions = init.get('expressions').filter((expression) => {
             if (!expression.isAssignmentExpression()) return true;
             if (!isIdentifier(expression.node.left)) return true;
 
@@ -47,6 +47,12 @@ export default class CommaOperatorUnwrapper extends Plugin {
             expression.remove();
             return false;
           });
+
+          path.insertBefore(validExpressions.slice(0, -1).map((exp) => exp.node));
+          for (let i = 0; i < validExpressions.length - 1; i += 1) {
+            validExpressions[i].remove();
+          }
+          declarator.get('init').replaceWith(validExpressions[validExpressions.length - 1]);
         });
       },
       ExpressionStatement: (path) => {

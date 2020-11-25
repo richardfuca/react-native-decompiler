@@ -10,6 +10,7 @@ export interface CachedModule {
   moduleId: number;
   dependencies: number[];
   moduleStrings: string[];
+  moduleComments: string[];
   moduleName: string;
   npmModuleVarName?: string;
   isNpmModule: boolean;

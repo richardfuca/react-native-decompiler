@@ -8,8 +8,6 @@ import { Plugin } from '../../plugin';
 export default class RequireMapper extends Plugin {
   readonly pass = 2;
 
-  private requireRenamed = false;
-
   getVisitor(): Visitor {
     return {
       CallExpression: (path) => {
@@ -17,11 +15,6 @@ export default class RequireMapper extends Plugin {
 
         const moduleDependency = this.getModuleDependency(path);
         if (moduleDependency == null) return;
-
-        if (!this.requireRenamed) {
-          this.requireRenamed = true;
-          path.scope.rename(path.node.callee.name, 'require');
-        }
 
         path.get('arguments')[0].replaceWith(stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`));
         if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {

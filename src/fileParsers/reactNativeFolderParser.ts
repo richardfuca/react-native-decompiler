@@ -48,7 +48,7 @@ export default class ReactNativeFolderParser extends PerformanceTracker implemen
             const functionArg = nodePath.get('arguments')[0];
             const moduleId = nodePath.get('arguments')[1];
             const dependencies = nodePath.get('arguments')[2];
-            if (functionArg.isFunctionExpression() && moduleId.isNumericLiteral() && dependencies.isArrayExpression()) {
+            if (functionArg.isFunctionExpression() && moduleId.isNumericLiteral() && dependencies.isArrayExpression() && functionArg.node.body.body.length) {
               const dependencyValues = dependencies.node.elements.map((e) => {
                 if (!isNumericLiteral(e)) throw new Error('Not numeric literal');
                 return e.value;

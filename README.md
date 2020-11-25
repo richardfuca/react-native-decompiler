@@ -2,7 +2,9 @@
 
 **DOES NOT SUPPORT ENCRYPTED/BINARY (FACEBOOK, INSTAGRAM) BUNDLES**
 
-Decompiles React Native `index.android.bundle` JS files. Some Webpack files too (see limitations)!
+Decompiles React Native `index.android.bundle` JS files. Webpack files too!
+
+Also tries to remove some compilation artifacts (via internal plugins, ESLint, and Prettier) to make it easier to read.
 
 # Usage
 
@@ -19,6 +21,7 @@ Command params:
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
 - `--noEslint` - does not run ESLint after doing decompilation
+- `--prettier` - does not run Prettier after doing decompilation
 - `--unpackOnly` - only unpacks the app with no other adjustments
 - `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
 - `--agressiveCache` - skips some cache checks at the expense of possible cache desync
@@ -26,10 +29,10 @@ Command params:
 ## Valid inputs
 
 The following input formats are currently supported:
-- A single `index.android.bundle` file that contains all modules (most cases)
+- A single `index.android.bundle` file that contains all modules (most cases for React Native)
 - A folder containing React Native modules (usually called `js-modules`) in "unbundled" apps
-- Certain Webpack files (in either single file format or folder for chunked apps)
-  - Decompilation support is very limited, `--unpackOnly` flag is recommended!
+- A single Webpack entrypoint bundle file (entrypoint bundles begin with `!function(e)`, chunked bundles start with `window.webpackJsonp`)
+- A folder containg Webpack chunks, where at least one file is the entrypoint
 
 # Extending
 

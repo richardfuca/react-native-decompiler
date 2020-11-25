@@ -7,9 +7,10 @@ import AssignmentIfElseToTernary from './cleaners/assignmentIfElseToTernary';
 import HangingIfElseWrapper from './longhanders/hangingIfElseWrapper';
 import DefaultInteropEvaluator from './evaluators/defaultInteropEvaluator';
 import ArrayDestructureEvaluator from './evaluators/arrayDestructureEvaluator';
-import SetStateRenamer from './react/renamers/setStateRenamer';
+import SetStateRenamer from './react/setStateRenamer';
 import ToConsumableArrayCleaner from './babel/cleaners/toConsumableArrayCleaner';
 import Spreadifier from './evaluators/spreadifier';
+import JSXConverter from './react/jsxConverter';
 
 const decompilerList: PluginConstructor[] = [
   VoidZeroToUndefined,
@@ -23,6 +24,7 @@ const decompilerList: PluginConstructor[] = [
   // pass 2
   ToConsumableArrayCleaner,
   UselessCommaOperatorCleaner,
+  JSXConverter,
   // pass 3
   SetStateRenamer,
 ];

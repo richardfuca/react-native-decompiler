@@ -2,6 +2,7 @@ import { Visitor, NodePath } from '@babel/traverse';
 import {
   isCallExpression,
   isIdentifier,
+  isStringLiteral,
   VariableDeclarator,
   MemberExpression,
 } from '@babel/types';
@@ -30,7 +31,7 @@ export default class DefaultInteropEvaluator extends Plugin {
     super(module, moduleList);
 
     const interopDependencies = moduleList.filter((mod) => this.INTEROP_MODULE_NAMES.includes(mod?.moduleName));
-    this.interopUsed = interopDependencies.length > 0 && interopDependencies.some((mod) => module.dependencies.includes(mod.moduleId));
+    this.interopUsed = this.hasTag('babel-interop') || (interopDependencies.length > 0 && interopDependencies.some((mod) => module.dependencies.includes(mod.moduleId)));
   }
 
   getVisitor(): Visitor {
@@ -57,8 +58,9 @@ export default class DefaultInteropEvaluator extends Plugin {
           return;
         }
 
-        const moduleDependency = this.getModuleDependency(callExpression);
-        if (this.INTEROP_MODULE_NAMES.includes(<string>moduleDependency?.moduleName) && path.node.id.start != null) {
+        const requireValue = isStringLiteral(callExpression.node.arguments[0]) ? callExpression.node.arguments[0].value : null;
+        const dependencyName = this.getModuleDependency(callExpression)?.moduleName ?? requireValue ?? '';
+        if (this.INTEROP_MODULE_NAMES.includes(dependencyName) && path.node.id.start != null) {
           this.interopFunctionPaths.push(path);
           this.interopFunctionStarts.push(path.node.id.start);
         }

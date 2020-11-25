@@ -64,12 +64,21 @@ export abstract class Plugin {
     return path.get('body');
   }
 
+  protected hasTag(tag: string): boolean {
+    return this.module.tags.includes(tag);
+  }
+
+  protected addTag(tag: string): void {
+    this.module.tags.push(tag);
+  }
+
   protected getModuleDependency(path: NodePath<CallExpression>): Module | null {
-    if (!isIdentifier(path.node.callee) || (!isMemberExpression(path.node.arguments[0]) && !isStringLiteral(path.node.arguments[0]))) return null;
+    if (!isIdentifier(path.node.callee)) return null;
+    if (!isNumericLiteral(path.node.arguments[0]) && !isMemberExpression(path.node.arguments[0]) && !isStringLiteral(path.node.arguments[0])) return null;
     if (path.scope.getBindingIdentifier(path.node.callee.name)?.start !== this.module.requireParam?.start) return null;
 
     if (isMemberExpression(path.node.arguments[0]) && isNumericLiteral(path.node.arguments[0].property)) {
-      return this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]];
+      return this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]] ?? null;
     }
 
     if (isStringLiteral(path.node.arguments[0])) {
@@ -78,6 +87,10 @@ export abstract class Plugin {
         return this.moduleList[this.module.dependencies[+nonNpmRegexTest[1]]];
       }
       return this.moduleList.find((mod) => isStringLiteral(path.node.arguments[0]) && mod?.moduleName === path.node.arguments[0].value) ?? null;
+    }
+
+    if (isNumericLiteral(path.node.arguments[0])) {
+      return this.moduleList[this.module.dependencies[path.node.arguments[0].value]] ?? null;
     }
 
     return null;
