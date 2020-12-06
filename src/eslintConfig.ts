@@ -7,7 +7,16 @@ const eslintConfig: Linter.Config = {
   },
   parserOptions: {
     ecmaVersion: 2020,
+    ecmaFeatures: {
+      jsx: true,
+    },
   },
+  plugins: [
+    'react',
+    'import',
+    'jsx-a11y',
+    'react-hooks',
+  ],
   rules: {
     'one-var': ['error', 'never'],
     'no-var': 'error',
@@ -79,6 +88,7 @@ const eslintConfig: Linter.Config = {
     }],
     'prefer-template': 'error',
     'template-curly-spacing': 'error',
+    'react/jsx-one-expression-per-line': 'error',
   },
 };
 

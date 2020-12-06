@@ -11,4 +11,6 @@ export default interface CmdArgs {
   noEslint: boolean;
   noPrettier: boolean;
   unpackOnly: boolean;
+  noProgress: boolean;
+  debug: number;
 }

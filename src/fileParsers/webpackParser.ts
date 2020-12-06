@@ -43,15 +43,16 @@ export default class WebpackParser extends PerformanceTracker {
 
       const dependencyValues: number[] = [];
       const requireIdentifer = element.node.params[2];
-      if (!isIdentifier(requireIdentifer)) return;
-      element.traverse({
-        CallExpression: (dependencyPath) => {
-          if (!isIdentifier(dependencyPath.node.callee) || !isNumericLiteral(dependencyPath.node.arguments[0])) return;
-          if (dependencyPath.scope.bindingIdentifierEquals(dependencyPath.node.callee.name, requireIdentifer)) {
-            dependencyValues[dependencyPath.node.arguments[0].value] = dependencyPath.node.arguments[0].value;
-          }
-        },
-      });
+      if (isIdentifier(requireIdentifer)) {
+        element.traverse({
+          CallExpression: (dependencyPath) => {
+            if (!isIdentifier(dependencyPath.node.callee) || !isNumericLiteral(dependencyPath.node.arguments[0])) return;
+            if (dependencyPath.scope.bindingIdentifierEquals(dependencyPath.node.callee.name, requireIdentifer)) {
+              dependencyValues[dependencyPath.node.arguments[0].value] = dependencyPath.node.arguments[0].value;
+            }
+          },
+        });
+      }
 
       const newModule = new Module(file, element, i, dependencyValues, this.PARAM_MAPPING);
       newModule.calculateFields();
@@ -70,15 +71,16 @@ export default class WebpackParser extends PerformanceTracker {
 
       const dependencyValues: number[] = [];
       const requireIdentifer = element.node.params[2];
-      if (!isIdentifier(requireIdentifer)) return;
-      element.traverse({
-        CallExpression: (dependencyPath) => {
-          if (!isIdentifier(dependencyPath.node.callee) || !isNumericLiteral(dependencyPath.node.arguments[0])) return;
-          if (dependencyPath.scope.bindingIdentifierEquals(dependencyPath.node.callee.name, requireIdentifer)) {
-            dependencyValues[dependencyPath.node.arguments[0].value] = dependencyPath.node.arguments[0].value;
-          }
-        },
-      });
+      if (isIdentifier(requireIdentifer)) {
+        element.traverse({
+          CallExpression: (dependencyPath) => {
+            if (!isIdentifier(dependencyPath.node.callee) || !isNumericLiteral(dependencyPath.node.arguments[0])) return;
+            if (dependencyPath.scope.bindingIdentifierEquals(dependencyPath.node.callee.name, requireIdentifer)) {
+              dependencyValues[dependencyPath.node.arguments[0].value] = dependencyPath.node.arguments[0].value;
+            }
+          },
+        });
+      }
 
       const newModule = new Module(file, element, i, dependencyValues, this.PARAM_MAPPING);
       newModule.calculateFields();

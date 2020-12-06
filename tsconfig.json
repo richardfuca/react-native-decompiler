@@ -5,14 +5,15 @@
     "target": "ES2018",
     "noImplicitAny": true,
     "strict": true,
+    "allowJs": false,
     "strictNullChecks": true,
     "removeComments": true,
     "preserveConstEnums": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "allowJs": true,
     "inlineSourceMap": true,
     "esModuleInterop": true,
+    "incremental": true,
     "outDir": "out"
   },
   "include": [

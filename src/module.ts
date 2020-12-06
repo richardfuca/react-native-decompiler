@@ -32,6 +32,7 @@ export default class Module {
   originalCode = '';
   moduleStrings: string[] = [];
   moduleComments: string[] = [];
+  variableNames: Set<string> = new Set();
 
   // modifiable fields
   /** The name of the module */
@@ -66,7 +67,7 @@ export default class Module {
   private getFunctionParam(index?: number): Identifier | undefined {
     if (index == null) return undefined;
     const param = this.rootPath.get('params')[index];
-    if (!param.isIdentifier()) throw new Error('Function param not Identifier');
+    if (!param || !param.isIdentifier()) return undefined;
     return param.node;
   }
 
@@ -80,6 +81,11 @@ export default class Module {
     this.rootPath.traverse({
       StringLiteral: (path) => {
         this.moduleStrings.push(path.node.value);
+      },
+      Identifier: (path) => {
+        if (path.node.name.length > 1) {
+          this.variableNames.add(path.node.name);
+        }
       },
     });
 
@@ -119,8 +125,17 @@ export default class Module {
       moduleName: this.moduleName,
       moduleStrings: this.moduleStrings,
       moduleComments: this.moduleComments,
+      variableNames: [...this.variableNames],
       paramMappings: this.paramMappings,
       npmModuleVarName: this.npmModuleVarName,
     };
+  }
+
+  debugToCode(): string {
+    return generator({
+      ...this.originalFile.program,
+      type: 'Program',
+      body: this.moduleCode.body,
+    }).code;
   }
 }

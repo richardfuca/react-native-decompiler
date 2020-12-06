@@ -16,10 +16,6 @@ export default class CommaOperatorUnwrapper extends Plugin {
         if (!argument.isSequenceExpression() || argument.get('expressions').length <= 1) return;
         const expressions = argument.get('expressions');
 
-        this.debugLog('unwrap ReturnStatement');
-        this.debugLog(this.debugPathToCode(path));
-        this.debugLog('---');
-
         path.insertBefore(expressions.slice(0, -1).map((exp) => exp.node));
         for (let i = 0; i < expressions.length - 1; i += 1) {
           expressions[i].remove();
@@ -31,10 +27,6 @@ export default class CommaOperatorUnwrapper extends Plugin {
         declarations.forEach((declarator) => {
           const init = declarator.get('init');
           if (!init.isSequenceExpression()) return;
-
-          this.debugLog('unwrap VariableDeclaration');
-          this.debugLog(this.debugPathToCode(path));
-          this.debugLog('---');
 
           const validExpressions = init.get('expressions').filter((expression) => {
             if (!expression.isAssignmentExpression()) return true;
@@ -58,10 +50,6 @@ export default class CommaOperatorUnwrapper extends Plugin {
       ExpressionStatement: (path) => {
         const expression = path.get('expression');
         if (!expression.isSequenceExpression() || expression.get('expressions').length <= 1) return;
-
-        this.debugLog('unwrap ExpressionStatement');
-        this.debugLog(this.debugPathToCode(path));
-        this.debugLog('---');
 
         path.replaceWithMultiple(expression.get('expressions').map((exp) => exp.node));
       },

@@ -3,12 +3,17 @@ import CliProgress from 'cli-progress';
 export default class ProgressBar {
   private static instance?: ProgressBar;
   private progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
+  private static disabled = false;
 
   static getInstance(): ProgressBar {
     if (!this.instance) {
       this.instance = new ProgressBar();
     }
     return this.instance;
+  }
+
+  static disable(): void {
+    ProgressBar.disabled = true;
   }
 
   private constructor() {}
@@ -19,6 +24,7 @@ export default class ProgressBar {
    * @param total The max value
    */
   start(startValue: number, total: number): void {
+    if (ProgressBar.disabled) return;
     this.progressBar.start(total, startValue);
   }
 
@@ -27,6 +33,7 @@ export default class ProgressBar {
    * @param amount The amount to increment, default = 1
    */
   increment(amount?: number): void {
+    if (ProgressBar.disabled) return;
     this.progressBar.increment(amount);
   }
 
@@ -34,6 +41,7 @@ export default class ProgressBar {
    * Stops the progress bar
    */
   stop(): void {
+    if (ProgressBar.disabled) return;
     this.progressBar.stop();
   }
 }

@@ -17,13 +17,10 @@ export default class RequireMapper extends Plugin {
         if (moduleDependency == null) return;
 
         path.get('arguments')[0].replaceWith(stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`));
-        if (moduleDependency.isNpmModule && moduleDependency.npmModuleVarName) {
-          const parent = path.parentPath;
-          if (!parent.isVariableDeclarator()) return;
-          if (!isIdentifier(parent.node.id)) return;
-
-          path.scope.rename(parent.node.id.name, moduleDependency.npmModuleVarName);
-        }
+        const parent = path.parentPath;
+        if (!parent.isVariableDeclarator()) return;
+        if (!isIdentifier(parent.node.id)) return;
+        path.scope.rename(parent.node.id.name, moduleDependency.npmModuleVarName || `module${moduleDependency.moduleId}`);
       },
     };
   }

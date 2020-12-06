@@ -2,6 +2,7 @@ import { performance } from 'perf_hooks';
 import { NodePath } from '@babel/traverse';
 import { PluginConstructor, Plugin } from './plugin';
 import Module from './module';
+import CmdArgs from './interfaces/cmdArgs';
 
 export default class Router<T extends Plugin, TConstructor extends PluginConstructor<T>> {
   static traverseTimeTaken = 0;
@@ -13,18 +14,18 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
   private readonly list: T[];
   private readonly listConstructors: TConstructor[];
   private readonly maxPass: number;
-  private readonly performance: boolean;
+  private readonly args: CmdArgs;
 
-  constructor(list: TConstructor[], module: Module, moduleList: Module[], perfSetting: boolean) {
+  constructor(list: TConstructor[], module: Module, moduleList: Module[], args: CmdArgs) {
     this.listConstructors = list;
+    this.args = args;
     this.list = list.map((PluginToLoad) => {
-      if (perfSetting && Router.timeTaken[PluginToLoad.name] == null) {
+      if (this.args.performance && Router.timeTaken[PluginToLoad.name] == null) {
         Router.timeTaken[PluginToLoad.name] = 0;
       }
       return new PluginToLoad(module, moduleList);
     });
     this.maxPass = Math.max(...this.list.map((plugin) => plugin.pass));
-    this.performance = perfSetting;
 
     this.module = module;
     this.moduleList = moduleList;
@@ -34,28 +35,43 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
     try {
       if (module.failedToDecompile) return;
 
+      if (this.args.debug === module.moduleId) {
+        this.list.forEach((plugin) => {
+          if (plugin.evaluate) {
+            plugin.evaluate(this.module.rootPath, this.runPlugin);
+          } else if (plugin.getVisitor) {
+            this.module.rootPath.traverse(plugin.getVisitor(this.runPlugin));
+          } else {
+            throw new Error('Plugin does not have getVisitor nor evaluate');
+          }
+          if (plugin.afterPass) {
+            plugin.afterPass(this.runPlugin);
+          }
+          console.log('after', plugin.name ?? 'unknown_name:');
+          console.log(module.debugToCode());
+        });
+        return;
+      }
+
       for (let pass = 1; pass <= this.maxPass; pass += 1) {
         let startTime = performance.now();
-        // module.rootPath.scope.crawl();
-        // Router.recrawlTimeTaken += performance.now() - startTime;
-        startTime = performance.now();
         const visitorFunctions: { [index: string]: ((path: NodePath<unknown>) => void)[] } = {};
         this.list.forEach((plugin, i) => {
           if (plugin.pass !== pass) return;
-          if (plugin.evaluate && this.performance) {
+          if (plugin.evaluate && this.args.performance) {
             startTime = performance.now();
-            plugin.evaluate(module.rootPath, this.rerunPlugin);
+            plugin.evaluate(module.rootPath, this.runPlugin);
             Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
           } else if (plugin.evaluate) {
-            plugin.evaluate(module.rootPath, this.rerunPlugin);
+            plugin.evaluate(module.rootPath, this.runPlugin);
           } else if (plugin.getVisitor) {
             /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-            const visitor: any = plugin.getVisitor(this.rerunPlugin);
+            const visitor: any = plugin.getVisitor(this.runPlugin);
             Object.keys(visitor).forEach((key) => {
               if (!visitorFunctions[key]) {
                 visitorFunctions[key] = [];
               }
-              if (this.performance) {
+              if (this.args.performance) {
                 visitorFunctions[key].push((path: NodePath<unknown>) => {
                   Router.traverseTimeTaken += performance.now() - startTime;
                   startTime = performance.now();
@@ -83,12 +99,12 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
         }
         this.list.forEach((plugin, i) => {
           if (plugin.pass !== pass) return;
-          if (plugin.afterPass && this.performance) {
+          if (plugin.afterPass && this.args.performance) {
             startTime = performance.now();
-            plugin.afterPass(this.rerunPlugin);
+            plugin.afterPass(this.runPlugin);
             Router.timeTaken[this.listConstructors[i].name] += performance.now() - startTime;
           } else if (plugin.afterPass) {
-            plugin.afterPass(this.rerunPlugin);
+            plugin.afterPass(this.runPlugin);
           }
         });
       }
@@ -103,14 +119,17 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
     plugins.forEach((fn) => fn(path));
   };
 
-  rerunPlugin = (PluginToRun: PluginConstructor): void => {
+  runPlugin = (PluginToRun: PluginConstructor): void => {
     const plugin = new PluginToRun(this.module, this.moduleList);
     if (plugin.evaluate) {
-      plugin.evaluate(this.module.rootPath, this.rerunPlugin);
+      plugin.evaluate(this.module.rootPath, this.runPlugin);
     } else if (plugin.getVisitor) {
-      this.module.rootPath.traverse(plugin.getVisitor(this.rerunPlugin));
+      this.module.rootPath.traverse(plugin.getVisitor(this.runPlugin));
     } else {
       throw new Error('Plugin does not have getVisitor nor evaluate');
+    }
+    if (plugin.afterPass) {
+      plugin.afterPass(this.runPlugin);
     }
   };
 }

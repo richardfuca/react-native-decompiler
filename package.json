@@ -20,13 +20,13 @@
     "command-line-args": "^5.0.2",
     "debug": "^4.2.0",
     "eslint": "^7.13.0",
+    "eslint-plugin-react": "^7.20.6",
     "fs-extra": "^9.0.1",
     "prettier": "^2.2.0"
   },
   "devDependencies": {
     "@types/babel__generator": "^7.6.2",
     "@types/babel__traverse": "^7.0.15",
-    "@types/babylon": "^6.16.5",
     "@types/cli-progress": "^3.8.0",
     "@types/command-line-args": "^5.0.0",
     "@types/debug": "^4.1.5",
@@ -39,7 +39,6 @@
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-jsx-a11y": "^6.3.1",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-react": "^7.20.6",
     "eslint-plugin-react-hooks": "^4.1.0",
     "patch-package": "^6.0.5",
     "typescript": "^4.0.5"

@@ -53,6 +53,7 @@ export abstract class Plugin {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected debugPathToCode(path: NodePath<any>): string {
+    if (!debug(`react-native-decompiler:${this.name ?? 'plugin'}`).enabled) return '';
     return generator({
       ...this.module.originalFile.program,
       type: 'Program',

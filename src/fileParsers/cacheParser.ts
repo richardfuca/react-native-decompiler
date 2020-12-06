@@ -60,6 +60,8 @@ export default class CacheParser implements FileParser {
           module.ignored = cached.ignored;
           module.isNpmModule = cached.isNpmModule;
           module.moduleStrings = cached.moduleStrings;
+          module.moduleComments = cached.moduleComments;
+          module.variableNames = new Set(cached.variableNames);
           module.moduleName = cached.moduleName;
           module.npmModuleVarName = cached.npmModuleVarName;
           module.originalCode = cached.code;

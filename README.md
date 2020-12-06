@@ -25,6 +25,8 @@ Command params:
 - `--unpackOnly` - only unpacks the app with no other adjustments
 - `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
 - `--agressiveCache` - skips some cache checks at the expense of possible cache desync
+- `--noProgress` - don't show progress bar
+- `--debug` - when also given a module ID, will print out that modules code after any plugin handles the app.
 
 ## Valid inputs
 

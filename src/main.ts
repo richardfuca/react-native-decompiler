@@ -3,7 +3,6 @@ import { performance } from 'perf_hooks';
 import prettier from 'prettier';
 import generator from '@babel/generator';
 import commandLineArgs from 'command-line-args';
-import CliProgress from 'cli-progress';
 import chalk from 'chalk';
 import { ESLint } from 'eslint';
 import Module from './module';
@@ -16,6 +15,7 @@ import eslintConfig from './eslintConfig';
 import CmdArgs from './interfaces/cmdArgs';
 import FileParserRouter from './fileParsers/fileParserRouter';
 import PerformanceTracker from './util/performanceTracker';
+import ProgressBar from './util/progressBar';
 
 function calculateModulesToIgnore(argValues: CmdArgs, modules: Module[]): Module[] {
   if (argValues.agressiveCache) return [];
@@ -39,6 +39,8 @@ function calculateModulesToIgnore(argValues: CmdArgs, modules: Module[]): Module
       { name: 'decompileIgnored', type: Boolean },
       { name: 'agressiveCache', type: Boolean },
       { name: 'unpackOnly', type: Boolean },
+      { name: 'noProgress', type: Boolean },
+      { name: 'debug', type: Number },
     ]);
     if (!argValues.in || !argValues.out) {
       console.log(`react-native-decompiler
@@ -62,8 +64,11 @@ Command params:
     if (argValues.performance) {
       PerformanceTracker.enable();
     }
+    if (argValues.noProgress) {
+      ProgressBar.disable();
+    }
 
-    const progressBar = new CliProgress.SingleBar({ etaBuffer: 200 }, CliProgress.Presets.shades_classic);
+    const progressBar = ProgressBar.getInstance();
     const cacheFileName = `${argValues.out}/${argValues.entry ?? 'null'}.cache`;
     let startTime = performance.now();
 
@@ -116,7 +121,7 @@ Command params:
     startTime = performance.now();
     console.log('Pre-parsing modules...');
 
-    progressBar.start(nonIgnoredModules.length, 0);
+    progressBar.start(0, nonIgnoredModules.length);
     nonIgnoredModules.forEach((module) => {
       module.validate();
       module.unpack();
@@ -130,9 +135,9 @@ Command params:
     if (!argValues.unpackOnly) {
       startTime = performance.now();
       console.log('Tagging...');
-      progressBar.start(nonIgnoredModules.length, 0);
+      progressBar.start(0, nonIgnoredModules.length);
       nonIgnoredModules.forEach((module) => {
-        const router = new Router(taggerList, module, modules, argValues.performance);
+        const router = new Router(taggerList, module, modules, argValues);
         router.parse(module);
 
         progressBar.increment();
@@ -161,24 +166,42 @@ Command params:
       }
 
       if (argValues.verbose) {
-        modules.forEach((mod) => {
-          if (mod.ignored && !mod.isNpmModule) return;
-          const dependentModules = modules.filter((otherMod) => !otherMod.ignored && otherMod.dependencies.includes(mod.moduleId));
-          console.debug(mod.moduleId, mod.moduleName, mod.isNpmModule ? ['X'] : dependentModules.map((m) => m.moduleId));
-        });
+        console.table(modules.map((mod) => {
+          const dependentModules = modules.filter((otherMod) => otherMod.dependencies.includes(mod.moduleId));
+          return {
+            // moduleId: mod.moduleId,
+            moduleName: mod.moduleName,
+            ignored: mod.ignored,
+            dependencies: mod.dependencies.filter((e) => e != null),
+            dependents: dependentModules.map((m) => m.moduleId),
+          };
+        }));
+        console.table(modules.filter((m) => !m.ignored || m.isNpmModule).map((mod) => {
+          const dependentModules = modules.filter((otherMod) => otherMod.dependencies.includes(mod.moduleId));
+          if (mod.isNpmModule && !dependentModules.filter((m) => !m.ignored).length) return null;
+          return {
+            // moduleId: mod.moduleId,
+            moduleName: mod.moduleName,
+            ignored: mod.ignored,
+            dependencies: mod.dependencies.filter((e) => e != null),
+            dependents: dependentModules.filter((m) => !m.ignored).map((m) => m.moduleId),
+          };
+        }).filter((e) => e != null));
       }
 
       nonIgnoredModules = modules.filter((mod) => argValues.decompileIgnored || !mod.ignored);
 
+      console.log(`${nonIgnoredModules.length} remain to be decompiled`);
+
       console.log(`Took ${performance.now() - startTime}ms`);
       startTime = performance.now();
       console.log('Decompiling...');
-      progressBar.start(nonIgnoredModules.length, 0);
+      progressBar.start(0, nonIgnoredModules.length);
       nonIgnoredModules.forEach((module) => {
-        const editorRouter = new Router(editorList, module, modules, argValues.performance);
+        const editorRouter = new Router(editorList, module, modules, argValues);
         editorRouter.parse(module);
 
-        const decompilerRouter = new Router(decompilerList, module, modules, argValues.performance);
+        const decompilerRouter = new Router(decompilerList, module, modules, argValues);
         decompilerRouter.parse(module);
 
         progressBar.increment();
@@ -195,7 +218,7 @@ Command params:
 
     startTime = performance.now();
     console.log('Generating code...');
-    progressBar.start(nonIgnoredModules.length, 0);
+    progressBar.start(0, nonIgnoredModules.length);
     const generatedFiles = nonIgnoredModules.map((module) => {
       const returnValue = {
         name: module.moduleId,
@@ -208,7 +231,7 @@ Command params:
       };
       if (!argValues.noPrettier) {
         try {
-          returnValue.code = prettier.format(returnValue.code, { parser: 'babel', singleQuote: true });
+          returnValue.code = prettier.format(returnValue.code, { parser: 'babel', singleQuote: true, printWidth: 150 });
         } catch (e) {
 
         }
@@ -221,7 +244,7 @@ Command params:
     console.log(`Took ${performance.now() - startTime}ms`);
     startTime = performance.now();
     console.log('Saving...');
-    progressBar.start(nonIgnoredModules.length, 0);
+    progressBar.start(0, nonIgnoredModules.length);
 
     generatedFiles.forEach((file) => {
       const filePath = `${argValues.out}/${file.name}.${file.extension}`;
@@ -247,12 +270,17 @@ Command params:
           fix: true,
           ignore: false,
           useEslintrc: false,
+          extensions: ['.js', '.jsx'],
           overrideConfig: eslintConfig,
         });
 
-        const results = await eslint.lintFiles([`${argValues.out}/*.js`]);
+        const jsResults = await eslint.lintFiles([`${argValues.out}/*.js`]);
 
-        await ESLint.outputFixes(results);
+        await ESLint.outputFixes(jsResults);
+
+        const jsxResults = await eslint.lintFiles([`${argValues.out}/*.jsx`]);
+
+        await ESLint.outputFixes(jsxResults);
       }()).then(() => {
         console.log(`Took ${performance.now() - startTime}ms`);
         startTime = performance.now();
@@ -266,5 +294,6 @@ Command params:
   } catch (e) {
     console.error(`${chalk.red('[!]')} Error occurred! You should probably report this.`);
     console.error(e);
+    process.exit(1);
   }
 })();
