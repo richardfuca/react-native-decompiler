@@ -27,6 +27,7 @@ import {
 import { Plugin } from '../../../plugin';
 import Module from '../../../module';
 import ArrayMap from '../../../util/arrayMap';
+import CmdArgs from '../../../interfaces/cmdArgs';
 
 /**
  * Cleans up `@babel/runtime/helpers/toConsumableArray` usage
@@ -39,8 +40,8 @@ export default class ToConsumableArrayCleaner extends Plugin {
   private moduleBindingLocation?: number;
   private callExpressions: ArrayMap<number, NodePath<CallExpression>> = new ArrayMap();
 
-  constructor(module: Module, moduleList: Module[]) {
-    super(module, moduleList);
+  constructor(args: CmdArgs, module: Module, moduleList: Module[]) {
+    super(args, module, moduleList);
 
     const destructureDependency = moduleList.find((mod) => mod?.moduleName === '@babel/runtime/helpers/toConsumableArray');
     this.moduleUsed = destructureDependency?.moduleId != null && module.dependencies.includes(destructureDependency?.moduleId);

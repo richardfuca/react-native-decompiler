@@ -17,32 +17,23 @@
  */
 
 import { Visitor } from '@babel/traverse';
-import {
-  isCallExpression,
-  isBinaryExpression,
-  ifStatement,
-  expressionStatement,
-  isLogicalExpression,
-  isAssignmentExpression,
-} from '@babel/types';
+import { isAssignmentExpression, isIdentifier } from '@babel/types';
 import { Plugin } from '../../plugin';
 
 /**
- * Converts `cond && statement` to `if (cond) statement`
+ * Keeps returns clean with no weird things like AssignmentExpressions
  */
-export default class HangingIfElseWrapper extends Plugin {
+export default class CleanReturns extends Plugin {
   readonly pass = 1;
-  readonly name = 'HangingIfElseWrapper';
 
   getVisitor(): Visitor {
     return {
-      ExpressionStatement: (path) => {
-        if (!isLogicalExpression(path.node.expression) || (!isBinaryExpression(path.node.expression.left) && !isLogicalExpression(path.node.expression.left))) return;
-        if ((!isCallExpression(path.node.expression.right) || path.node.expression.operator !== '&&') && !isAssignmentExpression(path.node.expression.right)) return;
-
-        this.debugLog(this.debugPathToCode(path));
-        path.replaceWith(ifStatement(path.node.expression.left, expressionStatement(path.node.expression.right)));
-      },
+      ReturnStatement: (path) => {
+        if (isAssignmentExpression(path.node.argument) && isIdentifier(path.node.argument.left)) {
+          path.insertBefore(path.node.argument);
+          path.get('argument').replaceWith(path.node.argument.left);
+        }
+      }
     };
   }
 }

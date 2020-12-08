@@ -28,12 +28,10 @@ const eslintConfig: Linter.Config = {
     ecmaFeatures: {
       jsx: true,
     },
+    sourceType: 'module',
   },
   plugins: [
     'react',
-    'import',
-    'jsx-a11y',
-    'react-hooks',
   ],
   rules: {
     'one-var': ['error', 'never'],

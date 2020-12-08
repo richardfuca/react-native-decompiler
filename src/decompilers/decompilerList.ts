@@ -29,6 +29,9 @@ import SetStateRenamer from './react/setStateRenamer';
 import ToConsumableArrayCleaner from './babel/cleaners/toConsumableArrayCleaner';
 import Spreadifier from './evaluators/spreadifier';
 import JSXConverter from './react/jsxConverter';
+import ExportsToEs6 from './es6/exportsToEs6';
+import CleanReturns from './cleaners/cleanReturns';
+import BabelClassEvaluator from './babel/class/babelClassEvaluator';
 
 const decompilerList: PluginConstructor[] = [
   VoidZeroToUndefined,
@@ -36,13 +39,16 @@ const decompilerList: PluginConstructor[] = [
   RequireMapper,
   AssignmentIfElseToTernary,
   HangingIfElseWrapper,
+  CleanReturns,
   DefaultInteropEvaluator,
   ArrayDestructureEvaluator,
   Spreadifier,
   // pass 2
   ToConsumableArrayCleaner,
   UselessCommaOperatorCleaner,
+  BabelClassEvaluator,
   JSXConverter,
+  ExportsToEs6,
   // pass 3
   SetStateRenamer,
 ];

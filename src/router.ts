@@ -41,7 +41,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
       if (this.args.performance && Router.timeTaken[PluginToLoad.name] == null) {
         Router.timeTaken[PluginToLoad.name] = 0;
       }
-      return new PluginToLoad(module, moduleList);
+      return new PluginToLoad(args, module, moduleList);
     });
     this.maxPass = Math.max(...this.list.map((plugin) => plugin.pass));
 
@@ -54,6 +54,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
       if (module.failedToDecompile) return;
 
       if (this.args.debug === module.moduleId) {
+        let lastCode = '';
         this.list.forEach((plugin) => {
           if (plugin.evaluate) {
             plugin.evaluate(this.module.rootPath, this.runPlugin);
@@ -66,7 +67,13 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
             plugin.afterPass(this.runPlugin);
           }
           console.log('after', plugin.name ?? 'unknown_name:');
-          console.log(module.debugToCode());
+          const newCode = module.debugToCode();
+          if (lastCode !== newCode) {
+            console.log(newCode);
+            lastCode = newCode;
+          } else {
+            console.log('No change');
+          }
         });
         return;
       }
@@ -138,7 +145,7 @@ export default class Router<T extends Plugin, TConstructor extends PluginConstru
   };
 
   runPlugin = (PluginToRun: PluginConstructor): void => {
-    const plugin = new PluginToRun(this.module, this.moduleList);
+    const plugin = new PluginToRun(this.args, this.module, this.moduleList);
     if (plugin.evaluate) {
       plugin.evaluate(this.module.rootPath, this.runPlugin);
     } else if (plugin.getVisitor) {

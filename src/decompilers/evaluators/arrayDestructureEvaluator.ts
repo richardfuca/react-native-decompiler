@@ -29,6 +29,7 @@ import {
 } from '@babel/types';
 import { Plugin } from '../../plugin';
 import Module from '../../module';
+import CmdArgs from '../../interfaces/cmdArgs';
 
 interface VariableDeclaratorData {
   path: NodePath<VariableDeclarator>;
@@ -53,8 +54,8 @@ export default class ArrayDestructureEvaluator extends Plugin {
   private destructureFunction?: NodePath<VariableDeclarator>;
   private destructureFunctionStart?: number;
 
-  constructor(module: Module, moduleList: Module[]) {
-    super(module, moduleList);
+  constructor(args: CmdArgs, module: Module, moduleList: Module[]) {
+    super(args, module, moduleList);
 
     const destructureDependency = moduleList.find((mod) => mod?.moduleName === '@babel/runtime/helpers/slicedToArray');
     this.destructureUsed = destructureDependency?.moduleId != null && module.dependencies.includes(destructureDependency?.moduleId);

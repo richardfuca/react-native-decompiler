@@ -27,6 +27,7 @@ import {
 import { Plugin, PluginConstructor } from '../../plugin';
 import RequiresAtTop from '../../editors/variables/requiresAtTop';
 import Module from '../../module';
+import CmdArgs from '../../interfaces/cmdArgs';
 
 /**
  * Evaluates babel default interops
@@ -45,8 +46,8 @@ export default class DefaultInteropEvaluator extends Plugin {
   private readonly interopedModuleStarts: number[] = [];
   private readonly memberExpressions: { [index: number]: NodePath<MemberExpression>[] } = {};
 
-  constructor(module: Module, moduleList: Module[]) {
-    super(module, moduleList);
+  constructor(args: CmdArgs, module: Module, moduleList: Module[]) {
+    super(args, module, moduleList);
 
     const interopDependencies = moduleList.filter((mod) => this.INTEROP_MODULE_NAMES.includes(mod?.moduleName));
     this.interopUsed = this.hasTag('babel-interop') || (interopDependencies.length > 0 && interopDependencies.some((mod) => module.dependencies.includes(mod.moduleId)));

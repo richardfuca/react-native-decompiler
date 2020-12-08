@@ -20,6 +20,7 @@ Command params:
 - `-e` - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
+- `--es6` - attempts to decompile to ES6 module syntax.
 - `--noEslint` - does not run ESLint after doing decompilation
 - `--prettier` - does not run Prettier after doing decompilation
 - `--unpackOnly` - only unpacks the app with no other adjustments

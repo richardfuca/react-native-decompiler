@@ -31,9 +31,10 @@ import generator from '@babel/generator';
 import { NodePath, Visitor } from '@babel/traverse';
 import debug from 'debug';
 import Module from './module';
+import CmdArgs from './interfaces/cmdArgs';
 
 export interface PluginConstructor<T extends Plugin = Plugin> {
-  new(module: Module, moduleList: Module[]): T;
+  new(cmdArgs: CmdArgs, module: Module, moduleList: Module[]): T;
 }
 
 export abstract class Plugin {
@@ -41,10 +42,12 @@ export abstract class Plugin {
   abstract readonly pass: number;
   /** The name of the plugin */
   readonly name?: string;
+  protected readonly cmdArgs: CmdArgs;
   protected readonly module: Module;
   protected readonly moduleList: Module[];
 
-  constructor(module: Module, moduleList: Module[]) {
+  constructor(cmdArgs: CmdArgs, module: Module, moduleList: Module[]) {
+    this.cmdArgs = cmdArgs;
     this.module = module;
     this.moduleList = moduleList;
   }

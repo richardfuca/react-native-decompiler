@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Identifier, isIdentifier } from '@babel/types';
+import { expressionStatement, Identifier, isIdentifier } from '@babel/types';
 import { Visitor } from '@babel/traverse';
 import { Plugin } from '../../plugin';
 
@@ -69,7 +69,7 @@ export default class CommaOperatorUnwrapper extends Plugin {
         const expression = path.get('expression');
         if (!expression.isSequenceExpression() || expression.get('expressions').length <= 1) return;
 
-        path.replaceWithMultiple(expression.get('expressions').map((exp) => exp.node));
+        path.replaceWithMultiple(expression.get('expressions').map((exp) => expressionStatement(exp.node)));
       },
     };
   }

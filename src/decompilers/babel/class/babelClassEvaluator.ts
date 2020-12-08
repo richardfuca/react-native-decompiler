@@ -16,20 +16,20 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export default interface CmdArgs {
-  in: string;
-  out: string;
-  bundlesFolder: string;
-  entry: number;
-  performance: boolean;
-  es6: boolean;
-  verbose: boolean;
-  decompileIgnored: boolean;
-  /** skips some cache checks at the expense of possible cache desync */
-  agressiveCache: boolean;
-  noEslint: boolean;
-  noPrettier: boolean;
-  unpackOnly: boolean;
-  noProgress: boolean;
-  debug: number;
+import { Visitor } from '@babel/traverse';
+import { Plugin } from '../../../plugin';
+
+/**
+ * Evaluates Babel class structures
+ */
+export default class BabelClassEvaluator extends Plugin {
+  readonly pass = 2;
+
+  getVisitor(): Visitor {
+    return {
+      StringLiteral: (path) => {
+        if (path.node.value !== 'Cannot call a class as a function') return;
+      },
+    };
+  }
 }
