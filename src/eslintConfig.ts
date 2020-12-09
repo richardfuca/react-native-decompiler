@@ -94,7 +94,7 @@ const eslintConfig: Linter.Config = {
       named: 'never',
       asyncArrow: 'always',
     }],
-    curly: ['error', 'multi-line'],
+    curly: ['error', 'multi-line', 'consistent'],
     'block-spacing': ['error', 'always'],
     'brace-style': ['error', '1tbs', { allowSingleLine: true }],
     yoda: 'error',

@@ -16,15 +16,8 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Visitor } from '@babel/traverse';
-import {
-  isCallExpression,
-  isBinaryExpression,
-  ifStatement,
-  expressionStatement,
-  isLogicalExpression,
-  isAssignmentExpression,
-} from '@babel/types';
+import { NodePath, Visitor } from '@babel/traverse';
+import * as t from '@babel/types';
 import { Plugin } from '../../plugin';
 
 /**
@@ -37,12 +30,43 @@ export default class HangingIfElseWrapper extends Plugin {
   getVisitor(): Visitor {
     return {
       ExpressionStatement: (path) => {
-        if (!isLogicalExpression(path.node.expression) || (!isBinaryExpression(path.node.expression.left) && !isLogicalExpression(path.node.expression.left))) return;
-        if ((!isCallExpression(path.node.expression.right) || path.node.expression.operator !== '&&') && !isAssignmentExpression(path.node.expression.right)) return;
+        if (!t.isBlockStatement(path.parent)) return;
 
-        this.debugLog(this.debugPathToCode(path));
-        path.replaceWith(ifStatement(path.node.expression.left, expressionStatement(path.node.expression.right)));
+        if (t.isLogicalExpression(path.node.expression) && path.node.expression.operator === '&&') {
+          this.convertShorthandIfTrue(path, path.node.expression);
+        } else if (t.isConditionalExpression(path.node.expression)) {
+          this.convertShorthandIfElse(path, path.node.expression);
+        }
       },
     };
+  }
+
+  private convertShorthandIfTrue(path: NodePath<t.ExpressionStatement>, expression: t.LogicalExpression): void {
+    this.debugLog(this.debugPathToCode(path));
+    path.replaceWith(this.parseConditionalIfTrue(expression));
+  }
+
+  private parseConditionalIfTrue(expression: t.LogicalExpression): t.IfStatement {
+    return t.ifStatement(expression.left, t.expressionStatement(expression.right));
+  }
+
+  private convertShorthandIfElse(path: NodePath<t.ExpressionStatement>, cond: t.ConditionalExpression): void {
+    this.debugLog(this.debugPathToCode(path));
+    path.replaceWith(this.parseConditionalToIfElse(cond));
+  }
+
+  private parseConditionalToIfElse(cond: t.ConditionalExpression): t.IfStatement {
+    const elseBlock = t.isConditionalExpression(cond.alternate) ? this.parseConditionalToIfElse(cond.alternate) : this.convertToBody(cond.alternate);
+    return t.ifStatement(cond.test, this.convertToBody(cond.consequent), elseBlock);
+  }
+
+  private convertToBody(e: t.Node): t.Statement {
+    if (t.isSequenceExpression(e)) {
+      return t.blockStatement(e.expressions.map((exp) => t.expressionStatement(exp)));
+    }
+    if (t.isLogicalExpression(e)) {
+      return this.parseConditionalIfTrue(e);
+    }
+    return t.isStatement(e) ? e : t.expressionStatement(e);
   }
 }

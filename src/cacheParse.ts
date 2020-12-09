@@ -18,6 +18,7 @@
 
 import crypto from 'crypto';
 import fs from 'fs-extra';
+import path from 'path';
 import Module from './module';
 import { CachedFile } from './interfaces/cachedFile';
 import CmdArgs from './interfaces/cmdArgs';
@@ -39,7 +40,7 @@ export default class CacheParse {
   private async generateInputChecksums(input: string): Promise<string[]> {
     if ((await fs.lstat(input)).isDirectory()) {
       return fs.readdir(input)
-        .then((fileNames) => Promise.all(fileNames.map((file) => fs.readFile(file))))
+        .then((fileNames) => Promise.all(fileNames.map((file) => fs.readFile(path.join(input, file)))))
         .then((files) => files.map((file) => crypto.createHash('md5').update(file).digest('hex')));
     }
 

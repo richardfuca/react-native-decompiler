@@ -18,6 +18,7 @@
 
 import { Visitor } from '@babel/traverse';
 import {
+  exportDefaultDeclaration,
   exportNamedDeclaration,
   functionDeclaration,
   isAssignmentExpression,
@@ -37,7 +38,7 @@ export default class ExportsToEs6 extends Plugin {
   readonly pass = 2;
 
   getVisitor(): Visitor {
-    if (!this.cmdArgs.es6) return {};
+    if (!this.cmdArgs.es6 || !this.module.tags.includes('__esModule')) return {};
     return {
       ExpressionStatement: (path) => {
         if (!isAssignmentExpression(path.node.expression)) return;
@@ -45,11 +46,17 @@ export default class ExportsToEs6 extends Plugin {
         if (!isMemberExpression(node.left) || !isIdentifier(node.left.object) || !isIdentifier(node.left.property)) return;
         if (node.left.object.name !== 'exports') return;
 
-        if (isObjectExpression(node.right)) {
+        const isDefault = node.left.property.name === 'default';
+        const exportType = isDefault ? exportDefaultDeclaration : exportNamedDeclaration;
+
+        if (isObjectExpression(node.right) && !isDefault) {
           const exportNode = exportNamedDeclaration(variableDeclaration('const', [variableDeclarator(node.left.property, node.right)]));
           path.replaceWith(exportNode);
         } else if (isFunctionExpression(node.right)) {
-          const exportNode = exportNamedDeclaration(functionDeclaration(node.left.property, node.right.params, node.right.body));
+          const exportNode = exportType(functionDeclaration(node.left.property, node.right.params, node.right.body));
+          path.replaceWith(exportNode);
+        } else if (isIdentifier(node.right) && isDefault) {
+          const exportNode = exportDefaultDeclaration(node.right);
           path.replaceWith(exportNode);
         }
       },

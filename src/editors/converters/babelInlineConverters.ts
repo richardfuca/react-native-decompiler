@@ -24,7 +24,7 @@ import { Plugin } from '../../plugin';
  * Converts inlines to requires for decompilers
  */
 export default class BabelInlineConverters extends Plugin {
-  readonly pass = 1;
+  readonly pass = 2;
   name = 'BabelInlineConverters';
 
   private interopRequireName?: string;
@@ -41,13 +41,20 @@ export default class BabelInlineConverters extends Plugin {
       VariableDeclarator: (nodePath) => {
         this.interopRequireDefaultVarInline(nodePath);
       },
+      UnaryExpression: (nodePath) => {
+        this.classCallCheckInline(nodePath);
+      },
     };
   }
 
-  private generateRequire(name: t.Identifier, requireModule: string): t.VariableDeclaration {
+  private generateRequireDeclaration(name: t.Identifier, requireModule: string): t.VariableDeclaration {
     return t.variableDeclaration('const', [
       t.variableDeclarator(name, t.callExpression(t.identifier('require'), [t.stringLiteral(requireModule)])),
     ]);
+  }
+
+  private generateRequireDeclarator(name: t.Identifier, requireModule: string): t.VariableDeclarator {
+    return t.variableDeclarator(name, t.callExpression(t.identifier('require'), [t.stringLiteral(requireModule)]));
   }
 
   private interopRequireDefaultFunction(path: NodePath<t.FunctionDeclaration>) {
@@ -59,7 +66,7 @@ export default class BabelInlineConverters extends Plugin {
     if (!t.isIdentifier(esModuleExpression.object) || !t.isIdentifier(esModuleExpression.property) || body[0].argument.test.left.name !== esModuleExpression.object.name) return;
     if (esModuleExpression.property.name !== '__esModule') return;
 
-    this.debugLog(`${this.module.moduleId} removed inline babel interopRequireDefault function:`);
+    this.debugLog('removed inline babel interopRequireDefault function:');
     this.debugLog(this.debugPathToCode(path));
 
     if (this.interopRequireName) {
@@ -67,7 +74,7 @@ export default class BabelInlineConverters extends Plugin {
       path.remove();
     } else {
       this.interopRequireName = path.node.id.name;
-      path.replaceWith(this.generateRequire(path.node.id, '@babel/runtime/helpers/interopRequireDefault'));
+      path.replaceWith(this.generateRequireDeclaration(path.node.id, '@babel/runtime/helpers/interopRequireDefault'));
     }
     this.addTag('babel-interop');
   }
@@ -87,7 +94,7 @@ export default class BabelInlineConverters extends Plugin {
     const moduleSourcePath = moduleSource.path.find((p) => p.isVariableDeclarator());
     if (moduleSourcePath == null || !moduleSourcePath.isVariableDeclarator() || !t.isIdentifier(moduleSourcePath.node.id)) return;
 
-    this.debugLog(`${this.module.moduleId} removed inline babel interopRequireDefault inline:`);
+    this.debugLog('removed inline babel interopRequireDefault inline:');
     this.debugLog(this.debugPathToCode(path));
 
     const oldBinding = path.scope.bindings[moduleSourcePath.node.id.name];
@@ -107,7 +114,7 @@ export default class BabelInlineConverters extends Plugin {
     const testArgs = returnBody[0].expression.right.arguments;
     if (!t.isMemberExpression(testArgs[0]) || !t.isIdentifier(testArgs[1]) || !t.isIdentifier(testArgs[0].property) || testArgs[0].property.name !== 'prototype') return;
 
-    this.debugLog(`${this.module.moduleId} removed inline babel createClass function:`);
+    this.debugLog('removed inline babel createClass function:');
     this.debugLog(this.debugPathToCode(path));
 
     const varDeclar = path.find((e) => e.isVariableDeclarator());
@@ -118,8 +125,29 @@ export default class BabelInlineConverters extends Plugin {
       path.remove();
     } else {
       this.createClassName = varDeclar.node.id.name;
-      varDeclar.replaceWith(this.generateRequire(varDeclar.node.id, '@babel/runtime/helpers/createClass'));
+      varDeclar.replaceWith(this.generateRequireDeclarator(varDeclar.node.id, '@babel/runtime/helpers/createClass'));
     }
     this.addTag('babel-createClass');
+  }
+
+  private classCallCheckInline(path: NodePath<t.UnaryExpression>) {
+    if (path.node.operator !== '!' || !t.isCallExpression(path.node.argument)) return;
+    if (!t.isFunctionExpression(path.node.argument.callee) || path.node.argument.arguments.length !== 2) return;
+    if (!t.isThisExpression(path.node.argument.arguments[0]) || !t.isIdentifier(path.node.argument.arguments[1])) return;
+
+    let hasErrorString = false;
+    path.traverse({
+      StringLiteral: (stringPath) => {
+        if (stringPath.node.value === 'Cannot call a class as a function') {
+          hasErrorString = true;
+        }
+      },
+    });
+    if (!hasErrorString) return;
+
+    this.debugLog('removed inline babel classCallCheck function:');
+    this.debugLog(this.debugPathToCode(path));
+
+    path.remove();
   }
 }

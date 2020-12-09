@@ -239,7 +239,16 @@ Command params:
     startTime = performance.now();
     console.log('Generating code...');
     progressBar.start(0, nonIgnoredModules.length);
-    const generatedFiles = nonIgnoredModules.map((module) => {
+
+    const eslint = new ESLint({
+      fix: true,
+      ignore: false,
+      useEslintrc: false,
+      extensions: ['.js', '.jsx'],
+      overrideConfig: eslintConfig,
+    });
+
+    const generatedFiles = await Promise.all(nonIgnoredModules.map(async (module) => {
       const returnValue = {
         name: module.moduleId,
         extension: module.tags.includes('jsx') ? 'jsx' : 'js',
@@ -249,16 +258,20 @@ Command params:
           body: module.moduleCode.body,
         }).code,
       };
+      if (!argValues.noEslint) {
+        try {
+          const lintedCode = await eslint.lintText(returnValue.code);
+          returnValue.code = lintedCode[0].output ?? returnValue.code;
+        } catch (e) {}
+      }
       if (!argValues.noPrettier) {
         try {
           returnValue.code = prettier.format(returnValue.code, { parser: 'babel', singleQuote: true, printWidth: 150 });
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
       progressBar.increment();
       return returnValue;
-    });
+    }));
 
     progressBar.stop();
     console.log(`Took ${performance.now() - startTime}ms`);
@@ -276,41 +289,13 @@ Command params:
 
     progressBar.stop();
 
-    if (argValues.entry && !argValues.agressiveCache) {
+    if (!fsExtra.existsSync(cacheFileName) || !argValues.agressiveCache) {
       console.log('Writing to cache...');
       await new CacheParse(argValues).writeCache(cacheFileName, modules);
     }
 
     console.log(`Took ${performance.now() - startTime}ms`);
-    startTime = performance.now();
-    if (!argValues.noEslint) {
-      console.log('Doing further cleanup with ESLint...');
-      (async function main() {
-        const eslint = new ESLint({
-          fix: true,
-          ignore: false,
-          useEslintrc: false,
-          extensions: ['.js', '.jsx'],
-          overrideConfig: eslintConfig,
-        });
-
-        const jsResults = await eslint.lintFiles([`${argValues.out}/*.js`]);
-
-        await ESLint.outputFixes(jsResults);
-
-        const jsxResults = await eslint.lintFiles([`${argValues.out}/*.jsx`]);
-
-        await ESLint.outputFixes(jsxResults);
-      }()).then(() => {
-        console.log(`Took ${performance.now() - startTime}ms`);
-        startTime = performance.now();
-        console.log('Done!');
-      }).catch((error) => {
-        console.error(error);
-      });
-    } else {
-      console.log('Done!');
-    }
+    console.log('Done!');
   } catch (e) {
     console.error(`${chalk.red('[!]')} Error occurred! You should probably report this.`);
     console.error(e);

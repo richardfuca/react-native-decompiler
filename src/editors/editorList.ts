@@ -24,8 +24,8 @@ import BabelInlineConverters from './converters/babelInlineConverters';
 
 const editorList: PluginConstructor[] = [
   CommaOperatorUnwrapper,
-  BabelInlineConverters,
   // pass 2
+  BabelInlineConverters,
   RequiresAtTop,
   EsModuleCleaner,
 ];

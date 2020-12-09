@@ -34,8 +34,11 @@ export default class CommaOperatorUnwrapper extends Plugin {
         if (!argument.isSequenceExpression() || argument.get('expressions').length <= 1) return;
         const expressions = argument.get('expressions');
 
-        path.insertBefore(expressions.slice(0, -1).map((exp) => exp.node));
+        this.debugLog('ReturnStatement:');
+        this.debugLog(this.debugPathToCode(path));
+
         for (let i = 0; i < expressions.length - 1; i += 1) {
+          path.insertBefore(expressionStatement(expressions[i].node));
           expressions[i].remove();
         }
         path.get('argument').replaceWith(expressions[expressions.length - 1]);
@@ -68,6 +71,9 @@ export default class CommaOperatorUnwrapper extends Plugin {
       ExpressionStatement: (path) => {
         const expression = path.get('expression');
         if (!expression.isSequenceExpression() || expression.get('expressions').length <= 1) return;
+
+        this.debugLog('ExpressionStatement:');
+        this.debugLog(this.debugPathToCode(path));
 
         path.replaceWithMultiple(expression.get('expressions').map((exp) => expressionStatement(exp.node)));
       },

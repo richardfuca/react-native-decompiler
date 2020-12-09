@@ -16,17 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-  CallExpression,
-  BlockStatement,
-  isIdentifier,
-  isMemberExpression,
-  isNumericLiteral,
-  isStringLiteral,
-  expressionStatement,
-  isStatement,
-  FunctionExpression,
-} from '@babel/types';
+import * as t from '@babel/types';
 import generator from '@babel/generator';
 import { NodePath, Visitor } from '@babel/traverse';
 import debug from 'debug';
@@ -59,13 +49,17 @@ export abstract class Plugin {
   getVisitor?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): Visitor;
 
   /** Do a full evaluation. Use this for advanced plugins, or for plugins that don't do traversals. */
-  evaluate?(block: NodePath<FunctionExpression>, rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
+  evaluate?(block: NodePath<t.FunctionExpression>, rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
 
   /** Runs after the pass completes. Note that the AST of the module may have changed if you stored stuff in getVisitor or evaluate. */
   afterPass?(rerunPlugin: (pluginConstructor: PluginConstructor) => void): void;
 
+  private getDebugName() {
+    return `react-native-decompiler:${this.name ?? 'plugin'}-${this.module.moduleId}`;
+  }
+
   protected debugLog(val: unknown): void {
-    debug(`react-native-decompiler:${this.name ?? 'plugin'}`)(val);
+    debug(this.getDebugName())(val);
   }
 
   /**
@@ -74,15 +68,15 @@ export abstract class Plugin {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected debugPathToCode(path: NodePath<any>): string {
-    if (!debug(`react-native-decompiler:${this.name ?? 'plugin'}`).enabled) return '';
+    if (!debug(this.getDebugName()).enabled) return '';
     return generator({
       ...this.module.originalFile.program,
       type: 'Program',
-      body: [isStatement(path.node) ? path.node : expressionStatement(path.node)],
+      body: [t.isStatement(path.node) ? path.node : t.expressionStatement(path.node)],
     }).code;
   }
 
-  protected navigateToModuleBody(path: NodePath<FunctionExpression>): NodePath<BlockStatement> {
+  protected navigateToModuleBody(path: NodePath<t.FunctionExpression>): NodePath<t.BlockStatement> {
     return path.get('body');
   }
 
@@ -94,24 +88,36 @@ export abstract class Plugin {
     this.module.tags.push(tag);
   }
 
-  protected getModuleDependency(path: NodePath<CallExpression>): Module | null {
-    if (!isIdentifier(path.node.callee)) return null;
-    if (!isNumericLiteral(path.node.arguments[0]) && !isMemberExpression(path.node.arguments[0]) && !isStringLiteral(path.node.arguments[0])) return null;
+  protected variableIsForDependency(path: NodePath<t.VariableDeclarator>, dep: string | string[]): boolean {
+    const depArray = dep instanceof Array ? dep : [dep];
+
+    const callExpression = path.get('init');
+    if (!callExpression.isCallExpression()) return false;
+
+    const requireValue = t.isStringLiteral(callExpression.node.arguments[0]) ? callExpression.node.arguments[0].value : null;
+    const dependencyName = this.getModuleDependency(callExpression)?.moduleName ?? requireValue ?? '';
+
+    return depArray.includes(dependencyName);
+  }
+
+  protected getModuleDependency(path: NodePath<t.CallExpression>): Module | null {
+    if (!t.isIdentifier(path.node.callee)) return null;
+    if (!t.isNumericLiteral(path.node.arguments[0]) && !t.isMemberExpression(path.node.arguments[0]) && !t.isStringLiteral(path.node.arguments[0])) return null;
     if (path.scope.getBindingIdentifier(path.node.callee.name)?.start !== this.module.requireParam?.start) return null;
 
-    if (isMemberExpression(path.node.arguments[0]) && isNumericLiteral(path.node.arguments[0].property)) {
+    if (t.isMemberExpression(path.node.arguments[0]) && t.isNumericLiteral(path.node.arguments[0].property)) {
       return this.moduleList[this.module.dependencies[path.node.arguments[0].property.value]] ?? null;
     }
 
-    if (isStringLiteral(path.node.arguments[0])) {
+    if (t.isStringLiteral(path.node.arguments[0])) {
       const nonNpmRegexTest = /\.\/([0-9]+)/.exec(path.node.arguments[0].value);
       if (nonNpmRegexTest != null) {
         return this.moduleList[this.module.dependencies[+nonNpmRegexTest[1]]];
       }
-      return this.moduleList.find((mod) => isStringLiteral(path.node.arguments[0]) && mod?.moduleName === path.node.arguments[0].value) ?? null;
+      return this.moduleList.find((mod) => t.isStringLiteral(path.node.arguments[0]) && mod?.moduleName === path.node.arguments[0].value) ?? null;
     }
 
-    if (isNumericLiteral(path.node.arguments[0])) {
+    if (t.isNumericLiteral(path.node.arguments[0])) {
       return this.moduleList[this.module.dependencies[path.node.arguments[0].value]] ?? null;
     }
 

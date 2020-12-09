@@ -18,6 +18,7 @@
 
 import fs from 'fs-extra';
 import crypto from 'crypto';
+import path from 'path';
 import * as babylon from '@babel/parser';
 import traverse from '@babel/traverse';
 import { CachedFile } from '../interfaces/cachedFile';
@@ -41,6 +42,7 @@ export default class CacheParser implements FileParser {
         await fs.remove(cacheFilename);
         return false;
       }
+      console.log('Cache validated');
 
       return true;
     } catch (e) {
@@ -51,7 +53,7 @@ export default class CacheParser implements FileParser {
   private async generateInputChecksums(input: string): Promise<string[]> {
     if ((await fs.lstat(input)).isDirectory()) {
       return fs.readdir(input)
-        .then((fileNames) => Promise.all(fileNames.map((file) => fs.readFile(file))))
+        .then((fileNames) => Promise.all(fileNames.map((file) => fs.readFile(path.join(input, file)))))
         .then((files) => files.map((file) => crypto.createHash('md5').update(file).digest('hex')));
     }
 
