@@ -23,6 +23,7 @@
     "node_modules",
     "output",
     "**/*.spec.ts",
-    "**/*.js"
+    "**/*.js",
+    "**/*.android.bundle"
   ]
 }

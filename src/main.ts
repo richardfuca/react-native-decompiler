@@ -22,6 +22,7 @@ import prettier from 'prettier';
 import generator from '@babel/generator';
 import commandLineArgs from 'command-line-args';
 import chalk from 'chalk';
+import crypto from 'crypto';
 import { ESLint } from 'eslint';
 import Module from './module';
 import taggerList from './taggers/taggerList';
@@ -43,26 +44,23 @@ function calculateModulesToIgnore(argValues: CmdArgs, modules: Module[]): Module
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-(async () => {
-  try {
-    const argValues = commandLineArgs<CmdArgs>([
-      { name: 'in', alias: 'i' },
-      { name: 'out', alias: 'o' },
-      { name: 'entry', alias: 'e', type: Number },
-      { name: 'performance', alias: 'p', type: Boolean },
-      { name: 'verbose', alias: 'v', type: Boolean },
-      { name: 'es6', type: Boolean },
-      { name: 'noEslint', type: Boolean },
-      { name: 'noPrettier', type: Boolean },
-      { name: 'decompileIgnored', type: Boolean },
-      { name: 'agressiveCache', type: Boolean },
-      { name: 'unpackOnly', type: Boolean },
-      { name: 'noProgress', type: Boolean },
-      { name: 'debug', type: Number },
-    ]);
-    if (!argValues.in || !argValues.out) {
-      console.log(`react-native-decompiler
+const argValues = commandLineArgs<CmdArgs>([
+  { name: 'in', alias: 'i' },
+  { name: 'out', alias: 'o' },
+  { name: 'entry', alias: 'e', type: Number },
+  { name: 'performance', alias: 'p', type: Boolean },
+  { name: 'verbose', alias: 'v', type: Boolean },
+  { name: 'es6', type: Boolean },
+  { name: 'noEslint', type: Boolean },
+  { name: 'noPrettier', type: Boolean },
+  { name: 'decompileIgnored', type: Boolean },
+  { name: 'agressiveCache', type: Boolean },
+  { name: 'unpackOnly', type: Boolean },
+  { name: 'noProgress', type: Boolean },
+  { name: 'debug', type: Number },
+]);
+if (!argValues.in || !argValues.out) {
+  console.log(`react-native-decompiler
 Example command: react-native-decompiler -i index.android.bundle -o ./output
 
 Command params:
@@ -78,16 +76,17 @@ Command params:
 --unpackOnly - only unpacks the app with no other adjustments
 --decompileIgnored - decompile ignored modules(modules are generally ignored if they are flagged as an NPM module)
 --agressiveCache - skips some cache checks at the expense of possible cache desync`);
-      process.exit(1);
-    }
+  process.exit(0);
+}
+if (argValues.performance) {
+  PerformanceTracker.enable();
+}
+if (argValues.noProgress) {
+  ProgressBar.disable();
+}
 
-    if (argValues.performance) {
-      PerformanceTracker.enable();
-    }
-    if (argValues.noProgress) {
-      ProgressBar.disable();
-    }
-
+async function start() {
+  try {
     const progressBar = ProgressBar.getInstance();
     const cacheFileName = `${argValues.out}/${argValues.entry ?? 'null'}.cache`;
     let startTime = performance.now();
@@ -120,11 +119,9 @@ Command params:
         lastDependenciesSize = entryModuleDependencies.size;
         entryModuleDependencies.forEach((moduleId) => {
           const module = modules.find((mod) => mod?.moduleId === moduleId);
-          if (!module) {
-            if (!argValues.agressiveCache) throw new Error(`Failed to find entry module/dependency ${moduleId}`);
-            return;
+          if (module) {
+            module.dependencies.forEach((dep) => entryModuleDependencies.add(dep));
           }
-          module.dependencies.forEach((dep) => entryModuleDependencies.add(dep));
         });
       }
 
@@ -249,6 +246,7 @@ Command params:
     });
 
     const generatedFiles = await Promise.all(nonIgnoredModules.map(async (module) => {
+      if (module.previousRunChecksum === crypto.createHash('md5').update(JSON.stringify(module.moduleCode.body)).digest('hex')) return null;
       const returnValue = {
         name: module.moduleId,
         extension: module.tags.includes('jsx') ? 'jsx' : 'js',
@@ -258,7 +256,7 @@ Command params:
           body: module.moduleCode.body,
         }).code,
       };
-      if (!argValues.noEslint) {
+      if (!argValues.noEslint && !argValues.unpackOnly) {
         try {
           const lintedCode = await eslint.lintText(returnValue.code);
           returnValue.code = lintedCode[0].output ?? returnValue.code;
@@ -280,6 +278,7 @@ Command params:
     progressBar.start(0, nonIgnoredModules.length);
 
     generatedFiles.forEach((file) => {
+      if (file == null) return;
       const filePath = `${argValues.out}/${file.name}.${file.extension}`;
       if (!fsExtra.existsSync(filePath) || fsExtra.readFileSync(filePath, 'utf-8') !== file.code) {
         fsExtra.writeFileSync(filePath, file.code);
@@ -301,4 +300,7 @@ Command params:
     console.error(e);
     process.exit(1);
   }
-})();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+start();

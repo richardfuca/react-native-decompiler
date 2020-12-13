@@ -18,7 +18,7 @@
 
 import traverse, { NodePath } from '@babel/traverse';
 import {
-  isNumericLiteral, isFunctionExpression, isIdentifier, File, isMemberExpression, isAssignmentExpression, ArrayExpression, ObjectExpression,
+  isNumericLiteral, isFunctionExpression, isIdentifier, File, isMemberExpression, isAssignmentExpression, ArrayExpression, ObjectExpression, isStringLiteral,
 } from '@babel/types';
 import ParamMappings from '../interfaces/paramMappings';
 import Module from '../module';
@@ -31,6 +31,8 @@ export default class WebpackParser extends PerformanceTracker {
     require: 2,
   };
 
+  protected fileIsWebpackEntry = (file: string): boolean => file.includes('window.webpackHotUpdate') || (file.includes('"Loading chunk "') && file.includes('"ChunkLoadError"'));
+
   protected parseAst(ast: File, modules: Module[]): void {
     traverse(ast, {
       CallExpression: (nodePath) => {
@@ -39,13 +41,21 @@ export default class WebpackParser extends PerformanceTracker {
           this.parseArray(ast, firstArg, modules);
         } else if (isMemberExpression(nodePath.node.callee) && isAssignmentExpression(nodePath.node.callee.object) && firstArg?.isArrayExpression()) { // chunked
           const assignment = nodePath.node.callee.object;
-          if (isMemberExpression(assignment.left) && isIdentifier(assignment.left.property) && assignment.left.property.name === 'webpackJsonp') {
-            const modulesObject = firstArg.get('elements')[1];
-            if (modulesObject.isArrayExpression()) {
-              this.parseArray(ast, modulesObject, modules);
-            } else {
-              if (!modulesObject || !modulesObject.isObjectExpression()) throw new Error('Failed assertion');
-              this.parseObject(ast, modulesObject, modules);
+          if (isMemberExpression(assignment.left)) {
+            let leftPropName = '';
+            if (isIdentifier(assignment.left.property)) {
+              leftPropName = assignment.left.property.name;
+            } else if (isStringLiteral(assignment.left.property)) {
+              leftPropName = assignment.left.property.value;
+            }
+            if (leftPropName.startsWith('webpackJsonp')) {
+              const modulesObject = firstArg.get('elements')[1];
+              if (modulesObject.isArrayExpression()) {
+                this.parseArray(ast, modulesObject, modules);
+              } else {
+                if (!modulesObject || !modulesObject.isObjectExpression()) throw new Error('Failed assertion');
+                this.parseObject(ast, modulesObject, modules);
+              }
             }
           }
         }

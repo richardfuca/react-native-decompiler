@@ -17,7 +17,7 @@
  */
 
 import { Visitor } from '@babel/traverse';
-import { isIdentifier, stringLiteral } from '@babel/types';
+import * as t from '@babel/types';
 import { Plugin } from '../../plugin';
 
 /**
@@ -29,16 +29,32 @@ export default class RequireMapper extends Plugin {
   getVisitor(): Visitor {
     return {
       CallExpression: (path) => {
-        if (!isIdentifier(path.node.callee)) return;
+        if (!t.isIdentifier(path.node.callee)) return;
 
         const moduleDependency = this.getModuleDependency(path);
         if (moduleDependency == null) return;
 
-        path.get('arguments')[0].replaceWith(stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`));
-        const parent = path.parentPath;
-        if (!parent.isVariableDeclarator()) return;
-        if (!isIdentifier(parent.node.id)) return;
-        path.scope.rename(parent.node.id.name, moduleDependency.npmModuleVarName || `module${moduleDependency.moduleId}`);
+        const varDeclar = path.find((p) => p.isVariableDeclarator());
+        const varName = varDeclar?.isVariableDeclarator() && t.isIdentifier(varDeclar.node.id) ? varDeclar.node.id.name : null;
+
+        if (moduleDependency.isPolyfill && varName) {
+          this.bindingTraverse(path.scope.bindings[varName], varName, {
+            MemberExpression: (bPath) => {
+              if (!t.isIdentifier(bPath.node.object) || !t.isIdentifier(bPath.node.property)) return;
+              if (bPath.node.object.name !== varName || bPath.node.property.name !== 'default') return;
+
+              bPath.replaceWith(bPath.node.object);
+            },
+          });
+          path.scope.rename(varName, moduleDependency.npmModuleVarName);
+          varDeclar?.remove();
+          return;
+        }
+
+        path.get('arguments')[0].replaceWith(t.stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`));
+        if (!varDeclar?.isVariableDeclarator()) return;
+        if (!t.isIdentifier(varDeclar.node.id)) return;
+        path.scope.rename(varDeclar.node.id.name, moduleDependency.npmModuleVarName || `module${moduleDependency.moduleId}`);
       },
     };
   }

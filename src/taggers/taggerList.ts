@@ -22,11 +22,13 @@ import BabelModuleFinder from './npmModuleFinders/babelModuleFinder';
 import { PluginConstructor } from '../plugin';
 import StyleLoaderIgnorer from './webpack/styleLoaderIgnorer';
 import EmptyIgnorer from './vanilla/emptyIgnorer';
+import PolyfillModuleFinder from './npmModuleFinders/polyfillModuleFinder';
 
 const taggerList: PluginConstructor[] = [
   // pass 1
   EmptyIgnorer,
   SimpleModuleFinder,
+  PolyfillModuleFinder,
   BabelModuleFinder,
   // pass 2
   PassthroughModuleRemapper,

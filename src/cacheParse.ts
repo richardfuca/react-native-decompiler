@@ -32,7 +32,7 @@ export default class CacheParse {
 
   async writeCache(filename: string, moduleList: Module[]): Promise<void> {
     return fs.writeJSON<CachedFile>(filename, {
-      checksum: await this.generateInputChecksums(this.cmdArgs.in),
+      inputChecksum: await this.generateInputChecksums(this.cmdArgs.in),
       modules: moduleList.filter((ele) => ele != null).map((e) => e.toCache()),
     });
   }

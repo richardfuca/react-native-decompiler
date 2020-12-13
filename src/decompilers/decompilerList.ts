@@ -32,6 +32,8 @@ import JSXConverter from './react/jsxConverter';
 import ExportsToEs6 from './es6/exportsToEs6';
 import CleanReturns from './cleaners/cleanReturns';
 import BabelClassEvaluator from './babel/class/babelClassEvaluator';
+import PowCleaner from './cleaners/powCleaner';
+import ImportsToEs6 from './es6/importsToEs6';
 
 const decompilerList: PluginConstructor[] = [
   VoidZeroToUndefined,
@@ -40,6 +42,7 @@ const decompilerList: PluginConstructor[] = [
   AssignmentIfElseToTernary,
   HangingIfElseWrapper,
   CleanReturns,
+  PowCleaner,
   DefaultInteropEvaluator,
   ArrayDestructureEvaluator,
   Spreadifier,
@@ -49,6 +52,7 @@ const decompilerList: PluginConstructor[] = [
   BabelClassEvaluator,
   JSXConverter,
   ExportsToEs6,
+  ImportsToEs6,
   // pass 3
   SetStateRenamer,
 ];

@@ -18,6 +18,7 @@
 
 import { NodePath } from '@babel/traverse';
 import generator from '@babel/generator';
+import crypto from 'crypto';
 import {
   Identifier, BlockStatement, File, FunctionExpression, expressionStatement,
 } from '@babel/types';
@@ -37,6 +38,8 @@ export default class Module {
   dependencies: number[];
   /** The param mapping used */
   private paramMappings: ParamMappings;
+  /** Original deps used for cache */
+  private originalDependencies: number[];
 
   /** The module's global variable */
   globalsParam?: Identifier;
@@ -48,6 +51,7 @@ export default class Module {
   exportsParam?: Identifier;
 
   originalCode = '';
+  previousRunChecksum = '';
   moduleStrings: string[] = [];
   moduleComments: string[] = [];
   variableNames: Set<string> = new Set();
@@ -59,6 +63,8 @@ export default class Module {
   npmModuleVarName?: string;
   /** If this is a NPM module */
   isNpmModule = false;
+  /** If this is a polyfill */
+  isPolyfill = false;
   /** If the module should not be decompiled nor outputted */
   ignored = false;
   /** If the module failed to decompile */
@@ -71,6 +77,7 @@ export default class Module {
     this.rootPath = rootPath;
     this.moduleId = moduleId;
     this.dependencies = dependencies;
+    this.originalDependencies = dependencies;
     this.paramMappings = paramMappings;
 
     this.moduleCode = rootPath.node.body;
@@ -137,8 +144,10 @@ export default class Module {
     return {
       code: this.originalCode,
       dependencies: this.dependencies,
+      originalDependencies: this.originalDependencies,
       ignored: this.ignored,
       isNpmModule: this.isNpmModule,
+      isPolyfill: this.isPolyfill,
       moduleId: this.moduleId,
       moduleName: this.moduleName,
       moduleStrings: this.moduleStrings,
@@ -146,6 +155,7 @@ export default class Module {
       variableNames: [...this.variableNames],
       paramMappings: this.paramMappings,
       npmModuleVarName: this.npmModuleVarName,
+      previousRunChecksum: crypto.createHash('md5').update(JSON.stringify(this.moduleCode.body)).digest('hex'),
     };
   }
 

@@ -19,7 +19,7 @@
 import ParamMappings from './paramMappings';
 
 export interface CachedFile {
-  checksum: string[];
+  inputChecksum: string[];
   modules: CachedModule[];
 }
 
@@ -27,12 +27,15 @@ export interface CachedModule {
   code: string;
   moduleId: number;
   dependencies: number[];
+  originalDependencies: number[];
   moduleStrings: string[];
   moduleComments: string[];
   variableNames: string[];
   moduleName: string;
   npmModuleVarName?: string;
   isNpmModule: boolean;
+  isPolyfill: boolean;
   ignored: boolean;
+  previousRunChecksum: string;
   paramMappings: ParamMappings;
 }

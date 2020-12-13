@@ -28,7 +28,7 @@ export default class WebpackSingleParser extends WebpackParser implements FilePa
     try {
       const file = await fs.readFile(args.in, 'utf8');
 
-      return file.includes('window.webpackHotUpdate');
+      return this.fileIsWebpackEntry(file);
     } catch (e) {
       return false;
     }

@@ -18,7 +18,7 @@
 
 import * as t from '@babel/types';
 import generator from '@babel/generator';
-import { NodePath, Visitor } from '@babel/traverse';
+import { Binding, NodePath, Visitor } from '@babel/traverse';
 import debug from 'debug';
 import Module from './module';
 import CmdArgs from './interfaces/cmdArgs';
@@ -122,5 +122,16 @@ export abstract class Plugin {
     }
 
     return null;
+  }
+
+  protected bindingTraverse(binding: Binding, varName: string, visitor: Visitor): void {
+    binding.scope.traverse(binding.scope.block, {
+      ...visitor,
+      Scope: (path) => {
+        if (!path.scope.bindingIdentifierEquals(varName, binding.identifier)) {
+          path.skip();
+        }
+      },
+    });
   }
 }

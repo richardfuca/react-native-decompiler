@@ -29,6 +29,7 @@ export default class BabelClassEvaluator extends Plugin {
   private classCreateName?: string;
   private classCreatePath?: NodePath<t.VariableDeclarator>;
   private callExpressions: ArrayMap<string, NodePath<t.CallExpression>> = new ArrayMap();
+  private assignmentExpressions: ArrayMap<string, NodePath<t.AssignmentExpression>> = new ArrayMap();
 
   getVisitor(): Visitor {
     return {
@@ -36,13 +37,18 @@ export default class BabelClassEvaluator extends Plugin {
         if (!t.isIdentifier(path.node.id)) return;
         if (this.variableIsForDependency(path, '@babel/runtime/helpers/createClass')) {
           this.classCreateName = path.node.id.name;
-          this.classCreatePath = path;
+          path.remove();
         }
       },
       CallExpression: (path) => {
         if (!t.isIdentifier(path.node.callee)) return;
 
         this.callExpressions.push(path.node.callee.name, path);
+      },
+      AssignmentExpression: (path) => {
+        if (!t.isBlockStatement(path.parentPath.parent) || !t.isMemberExpression(path.node.left) || !t.isIdentifier(path.node.left.object)) return;
+
+        this.assignmentExpressions.push(path.node.left.object.name, path);
       },
     };
   }
@@ -55,6 +61,7 @@ export default class BabelClassEvaluator extends Plugin {
 
       const varDeclar = path.find((e) => e.isVariableDeclarator());
       if (!varDeclar?.isVariableDeclarator() || !t.isIdentifier(varDeclar.node.id) || !t.isVariableDeclaration(varDeclar.parent)) return;
+      const className = varDeclar.node.id.name;
 
       const methods = [];
 
@@ -63,12 +70,13 @@ export default class BabelClassEvaluator extends Plugin {
         methods.push(constructor);
       }
 
+      methods.push(...this.createStatic(className, varDeclar.scope.bindings[className].identifier));
       methods.push(...this.createMethods(path));
 
       if (varDeclar.parent.declarations.length === 1) {
-        varDeclar.parentPath.replaceWith(t.classDeclaration(t.identifier(varDeclar.node.id.name), undefined, t.classBody(methods)));
+        varDeclar.parentPath.replaceWith(t.classDeclaration(t.identifier(className), undefined, t.classBody(methods)));
       } else {
-        varDeclar.parentPath.insertAfter(t.classDeclaration(t.identifier(varDeclar.node.id.name), undefined, t.classBody(methods)));
+        varDeclar.parentPath.insertAfter(t.classDeclaration(t.identifier(className), undefined, t.classBody(methods)));
         varDeclar.remove();
       }
     });
@@ -84,6 +92,23 @@ export default class BabelClassEvaluator extends Plugin {
     if (!constructorFunction?.isFunctionDeclaration()) return null;
 
     return t.classMethod('constructor', t.identifier('constructor'), constructorFunction.node.params, constructorFunction.node.body);
+  }
+
+  private createStatic(varName: string, bindingIdentifier: t.Identifier): (t.ClassProperty | t.ClassMethod)[] {
+    const methods: (t.ClassProperty | t.ClassMethod)[] = [];
+
+    this.assignmentExpressions.forEachElement(varName, (path) => {
+      if (path.removed || !path.scope.bindingIdentifierEquals(varName, bindingIdentifier)) return;
+      if (!t.isMemberExpression(path.node.left) || !t.isIdentifier(path.node.left.property)) return;
+
+      if (t.isFunctionExpression(path.node.right)) {
+        methods.push(t.classMethod('method', t.identifier(path.node.left.property.name), path.node.right.params, path.node.right.body, undefined, true));
+        path.remove();
+      } else {
+        // methods.push(t.classProperty(path.node.left.property, path.node.right, undefined, undefined, undefined, true));
+      }
+    });
+    return methods;
   }
 
   private createMethods(path: NodePath<t.CallExpression>): t.ClassMethod[] {

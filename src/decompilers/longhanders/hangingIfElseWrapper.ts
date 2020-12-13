@@ -38,6 +38,12 @@ export default class HangingIfElseWrapper extends Plugin {
           this.convertShorthandIfElse(path, path.node.expression);
         }
       },
+      ReturnStatement: (path) => {
+        if (!t.isConditionalExpression(path.node.argument)) return;
+        if (!t.isSequenceExpression(path.node.argument.consequent) && !t.isSequenceExpression(path.node.argument.alternate)) return;
+
+        path.replaceWith(t.ifStatement(path.node.argument.test, this.convertToReturnBody(path.node.argument.consequent), this.convertToReturnBody(path.node.argument.alternate)));
+      },
     };
   }
 
@@ -46,8 +52,9 @@ export default class HangingIfElseWrapper extends Plugin {
     path.replaceWith(this.parseConditionalIfTrue(expression));
   }
 
-  private parseConditionalIfTrue(expression: t.LogicalExpression): t.IfStatement {
-    return t.ifStatement(expression.left, t.expressionStatement(expression.right));
+  private parseConditionalIfTrue(exp: t.LogicalExpression): t.IfStatement {
+    const body = t.isSequenceExpression(exp.right) ? t.blockStatement(exp.right.expressions.map((e) => t.expressionStatement(e))) : t.expressionStatement(exp.right);
+    return t.ifStatement(exp.left, body);
   }
 
   private convertShorthandIfElse(path: NodePath<t.ExpressionStatement>, cond: t.ConditionalExpression): void {
@@ -67,6 +74,22 @@ export default class HangingIfElseWrapper extends Plugin {
     if (t.isLogicalExpression(e)) {
       return this.parseConditionalIfTrue(e);
     }
-    return t.isStatement(e) ? e : t.expressionStatement(e);
+    if (t.isExpression(e)) {
+      return t.expressionStatement(e);
+    }
+    if (t.isStatement(e)) {
+      return e;
+    }
+    throw new Error(`Unexpected conversion of ${e.type} to statement body`);
+  }
+
+  private convertToReturnBody(e: t.Node): t.Statement {
+    if (t.isSequenceExpression(e)) {
+      return t.blockStatement(e.expressions.map((exp, i) => (i + 1 === e.expressions.length ? t.returnStatement(exp) : t.expressionStatement(exp))));
+    }
+    if (t.isExpression(e)) {
+      return t.returnStatement(e);
+    }
+    throw new Error(`Unexpected conversion of ${e.type} to return body`);
   }
 }

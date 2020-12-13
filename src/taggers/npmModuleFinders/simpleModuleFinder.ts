@@ -34,8 +34,8 @@ export default class SimpleModuleFinder extends ModuleFinder {
   };
 
   private readonly stringMappings: Record<string, string[]> = {
-    react: ['https://reactjs.org/docs/error-decoder.html?invariant='],
     'react-dom': ['suspended while rendering, but no fallback UI was specified'],
+    react: ['https://reactjs.org/docs/error-decoder.html?invariant='],
     'react-native-web': ['Text strings must be rendered within a <Text> component.'],
     'base64-js': ['Invalid string. Length must be a multiple of 4'],
     'redux-react-hook': ['redux-react-hook requires your Redux store to be passed through context via the <StoreContext.Provider>'],
@@ -56,6 +56,8 @@ export default class SimpleModuleFinder extends ModuleFinder {
     jsonwebtoken: [/verify:.\(/, /sign:.\(/, /JsonWebTokenError:.\(/, /NotBeforeError:.\(/, /TokenExpiredError:.\(/],
     'asn1.js': [/.\.bignum=.\(/, /.\.define=.\(/, /.\.base=.\(/, /.\.constants=.\(/, /.\.decoders=.\(/, /.\.encoders=.\(/],
     elliptic: [/.\.base=.\(/, /.\.mont=.\(/, /.\.short=.\(/, /.\.edwards=.\(/],
+    'crypto-js/aes': [/encryptBlock:function\(.,.\){this\._doCryptBlock\(.,.,this\._keySchedule,.,.,.,.,.\);?}/],
+    'lz-string': [/compressToEncodedURIComponent:function\(.\){return null==.\?"":.\._compress\(.,6,function\(.\){return .\.charAt\(.\);?}\);?}/],
   };
 
   private readonly moduleVarNames: Record<string, string> = {
@@ -73,9 +75,11 @@ export default class SimpleModuleFinder extends ModuleFinder {
     'crypto-browserify': 'crypto',
     'prop-types': 'PropTypes',
     'crypto-js': 'CryptoJS',
+    'crypto-js/aes': 'AES',
     jsonwebtoken: 'jwt',
     i18next: 'i18next',
     asn: 'asn',
+    'lz-string': 'LZString',
   };
 
   evaluate(): void {

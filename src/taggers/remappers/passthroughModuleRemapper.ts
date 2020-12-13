@@ -47,6 +47,7 @@ export default class PassthroughModuleRemapper extends Plugin {
         const dependency = this.getModuleDependency(rightCallee.isCallExpression() ? rightCallee : right);
         if (!dependency) return;
         if (rightCallee.isCallExpression() && !dependency.moduleStrings.find((str) => str.includes('Calling PropTypes validators directly is not supported'))) return;
+        if (!this.moduleList.some((m) => m.dependencies.includes(this.module.moduleId))) return;
 
         this.debugLog(`bypassing ${this.module.moduleId} for ${dependency.moduleId} ${dependency.moduleName}`);
 

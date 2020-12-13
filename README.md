@@ -17,7 +17,7 @@ Example command: `node ./out/main.js -i index.android.bundle -o ./output`, `ts-n
 Command params:
 - `-i` (required) - input file/folder
 - `-o` (required) - the path to the output folder
-- `-e` - a module ID, if specified will only decompile that module & it's dependencies. also creates cache file to speed up future load times (useful for developing new plugins)
+- `-e` - a module ID, if specified will only decompile that module & it's dependencies.
 - `-p` - performance monitoring flag, will print out runtime for each decompiler plugin
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
 - `--es6` - attempts to decompile to ES6 module syntax.
@@ -42,8 +42,8 @@ The following input formats are currently supported:
 The decompiler operates on a tagger -> editor -> decompiler system.
 
 * Taggers - Manipulates the module metadata
-* Editors - Manipulates the module lines (add, move, or remove). Editors should not edit the actual lines in a meaningful way.
-* Decompilers - Manipulates the module code. Line edits that also require meaningful code/line edits should be placed as a decompiler.
+* Editors - Manipulates the module lines (add, move, or remove).
+* Decompilers - Manipulates the module code.
 
 To add a new plugin, add it into the represpective list.
 

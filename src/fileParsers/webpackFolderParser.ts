@@ -29,7 +29,7 @@ export default class WebpackFolderParser extends WebpackParser implements FilePa
     try {
       const fileNames = await fs.readdir(args.in);
 
-      return fileNames.some((fileName) => fs.readFileSync(path.join(args.in, fileName), 'utf8').includes('window.webpackHotUpdate'));
+      return fileNames.some((fileName) => this.fileIsWebpackEntry(fs.readFileSync(path.join(args.in, fileName), 'utf8')));
     } catch (e) {
       return false;
     }

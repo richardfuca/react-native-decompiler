@@ -23,6 +23,8 @@ import { Plugin } from '../../plugin';
 export default abstract class ModuleFinder extends Plugin {
   readonly pass = 1;
 
+  private defaultExportOnly = ['react', 'react-dom'];
+
   protected tagAsNpmModule(moduleName: string, varName?: string): void {
     if (this.module.isNpmModule && this.module.moduleName !== moduleName) {
       throw new Error(`Module #${this.module.moduleId} is already the ${this.module.moduleName} module but tried to re-tag as ${moduleName}`);
@@ -32,6 +34,10 @@ export default abstract class ModuleFinder extends Plugin {
     this.module.ignored = true;
     this.module.moduleName = moduleName;
     this.module.npmModuleVarName = varName;
+
+    if (this.defaultExportOnly.includes(moduleName)) {
+      this.addTag('defaultExportOnly');
+    }
   }
 
   abstract evaluate(path: NodePath<FunctionExpression>): void;
