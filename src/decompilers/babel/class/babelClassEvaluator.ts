@@ -41,7 +41,7 @@ export default class BabelClassEvaluator extends Plugin {
         }
       },
       CallExpression: (path) => {
-        if (!t.isIdentifier(path.node.callee)) return;
+        if (!t.isIdentifier(path.node.callee) || path.node.arguments.length > 2) return;
 
         this.callExpressions.push(path.node.callee.name, path);
       },
