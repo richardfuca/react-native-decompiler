@@ -14,7 +14,7 @@
     "@babel/generator": "^7.12.5",
     "@babel/parser": "^7.12.7",
     "@babel/traverse": "^7.12.9",
-    "@babel/types": "^7.12.7",
+    "@babel/types": "^7.12.10",
     "chalk": "^4.1.0",
     "cli-progress": "^3.8.2",
     "command-line-args": "^5.0.2",
