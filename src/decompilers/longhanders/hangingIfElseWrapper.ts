@@ -30,31 +30,35 @@ export default class HangingIfElseWrapper extends Plugin {
   getVisitor(): Visitor {
     return {
       ExpressionStatement: (path) => {
-        if (!t.isBlockStatement(path.parent)) return;
+        if (!t.isBlockStatement(path.parent) && !t.isSwitchCase(path.parent)) return;
 
         if (t.isLogicalExpression(path.node.expression) && path.node.expression.operator === '&&') {
-          this.convertShorthandIfTrue(path, path.node.expression);
+          this.convertShorthandIf(path, path.node.expression, true);
+        } else if (t.isLogicalExpression(path.node.expression) && path.node.expression.operator === '||') {
+          this.convertShorthandIf(path, path.node.expression, false);
         } else if (t.isConditionalExpression(path.node.expression)) {
           this.convertShorthandIfElse(path, path.node.expression);
         }
       },
       ReturnStatement: (path) => {
         if (!t.isConditionalExpression(path.node.argument)) return;
-        if (!t.isSequenceExpression(path.node.argument.consequent) && !t.isSequenceExpression(path.node.argument.alternate)) return;
+        const eitherIsSeqExp = t.isSequenceExpression(path.node.argument.consequent) || t.isSequenceExpression(path.node.argument.alternate);
+        const bothAreCondExp = t.isConditionalExpression(path.node.argument.consequent) && t.isConditionalExpression(path.node.argument.alternate);
+        if (!eitherIsSeqExp && !bothAreCondExp) return;
 
         path.replaceWith(t.ifStatement(path.node.argument.test, this.convertToReturnBody(path.node.argument.consequent), this.convertToReturnBody(path.node.argument.alternate)));
       },
     };
   }
 
-  private convertShorthandIfTrue(path: NodePath<t.ExpressionStatement>, expression: t.LogicalExpression): void {
+  private convertShorthandIf(path: NodePath<t.ExpressionStatement>, expression: t.LogicalExpression, condition: boolean): void {
     this.debugLog(this.debugPathToCode(path));
-    path.replaceWith(this.parseConditionalIfTrue(expression));
+    path.replaceWith(this.parseConditionalIf(expression, condition));
   }
 
-  private parseConditionalIfTrue(exp: t.LogicalExpression): t.IfStatement {
+  private parseConditionalIf(exp: t.LogicalExpression, condition: boolean): t.IfStatement {
     const body = t.isSequenceExpression(exp.right) ? t.blockStatement(exp.right.expressions.map((e) => t.expressionStatement(e))) : t.expressionStatement(exp.right);
-    return t.ifStatement(exp.left, body);
+    return t.ifStatement(condition ? exp.left : t.unaryExpression('!', exp.left), body);
   }
 
   private convertShorthandIfElse(path: NodePath<t.ExpressionStatement>, cond: t.ConditionalExpression): void {
@@ -72,7 +76,7 @@ export default class HangingIfElseWrapper extends Plugin {
       return t.blockStatement(e.expressions.map((exp) => t.expressionStatement(exp)));
     }
     if (t.isLogicalExpression(e)) {
-      return this.parseConditionalIfTrue(e);
+      return this.parseConditionalIf(e, e.operator === '&&');
     }
     if (t.isExpression(e)) {
       return t.expressionStatement(e);

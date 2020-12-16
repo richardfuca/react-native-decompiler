@@ -20,7 +20,6 @@ import PassthroughModuleRemapper from './remappers/passthroughModuleRemapper';
 import SimpleModuleFinder from './npmModuleFinders/simpleModuleFinder';
 import BabelModuleFinder from './npmModuleFinders/babelModuleFinder';
 import { PluginConstructor } from '../plugin';
-import StyleLoaderIgnorer from './webpack/styleLoaderIgnorer';
 import EmptyIgnorer from './vanilla/emptyIgnorer';
 import PolyfillModuleFinder from './npmModuleFinders/polyfillModuleFinder';
 
@@ -32,7 +31,6 @@ const taggerList: PluginConstructor[] = [
   BabelModuleFinder,
   // pass 2
   PassthroughModuleRemapper,
-  StyleLoaderIgnorer,
 ];
 
 export default taggerList;

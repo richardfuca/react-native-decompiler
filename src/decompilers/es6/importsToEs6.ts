@@ -37,10 +37,11 @@ export default class ImportsToEs6 extends Plugin {
 
         const varDeclar = path.find((e) => e.isVariableDeclarator());
         if (varDeclar == null || !varDeclar.isVariableDeclarator() || !t.isIdentifier(varDeclar.node.id)) return;
-        const varName = varDeclar.node.id.name;
+        const varIdentifier = varDeclar.node.id;
+        const varName = varIdentifier.name;
 
         if (moduleDependency.tags.includes('defaultExportOnly') || !moduleDependency.tags.includes('__esModule')) {
-          varDeclar.parentPath.insertBefore(t.importDeclaration([t.importDefaultSpecifier(varDeclar.node.id)], path.node.arguments[0]));
+          varDeclar.parentPath.insertBefore(t.importDeclaration([t.importDefaultSpecifier(varIdentifier)], path.node.arguments[0]));
           varDeclar.remove();
           return;
         }
@@ -56,11 +57,17 @@ export default class ImportsToEs6 extends Plugin {
             }
           },
         });
-        if (imports.has('default') || imports.size < 1 || imports.size > 5) return;
+        if (imports.size < 1 || imports.size > 5) return;
 
-        memberExpressions.forEach((bPath) => bPath.replaceWith(bPath.node.property));
+        memberExpressions.forEach((bPath) => {
+          if (t.isIdentifier(bPath.node.property) && bPath.node.property.name === 'default') {
+            bPath.replaceWith(bPath.node.object);
+          } else {
+            bPath.replaceWith(bPath.node.property);
+          }
+        });
 
-        const importSpecifiers = [...imports].map((i) => t.importSpecifier(t.identifier(i), t.identifier(i)));
+        const importSpecifiers = [...imports].map((i) => (i === 'default' ? t.importDefaultSpecifier(varIdentifier) : t.importSpecifier(t.identifier(i), t.identifier(i))));
         varDeclar.parentPath.insertBefore(t.importDeclaration(importSpecifiers, path.node.arguments[0]));
         varDeclar.remove();
       },

@@ -21,6 +21,7 @@ import CommaOperatorUnwrapper from './unwrappers/commaOperatorUnwrapper';
 import EsModuleCleaner from './cleaners/esModuleCleaner';
 import { PluginConstructor } from '../plugin';
 import BabelInlineConverters from './converters/babelInlineConverters';
+import NoUndefinedExport from './variables/noUndefinedExport';
 
 const editorList: PluginConstructor[] = [
   CommaOperatorUnwrapper,
@@ -28,6 +29,7 @@ const editorList: PluginConstructor[] = [
   BabelInlineConverters,
   RequiresAtTop,
   EsModuleCleaner,
+  NoUndefinedExport,
 ];
 
 export default editorList;

@@ -107,6 +107,7 @@ const eslintConfig: Linter.Config = {
     'no-else-return': 'error',
     'react/jsx-one-expression-per-line': 'error',
     'no-undef-init': 'error',
+    'prefer-object-spread': 'error',
   },
 };
 
