@@ -63,6 +63,27 @@ export default class BabelClassEvaluator extends Plugin {
       if (!varDeclar?.isVariableDeclarator() || !t.isIdentifier(varDeclar.node.id) || !t.isVariableDeclaration(varDeclar.parent)) return;
       const className = varDeclar.node.id.name;
 
+      const parentBody = path.find((e) => e.isBlockStatement());
+      if (!parentBody?.isBlockStatement()) return;
+
+      const extendsId = parentBody.get('body').map((line) => {
+        if (!line.isExpressionStatement() || !t.isCallExpression(line.node.expression)) return null;
+        const exp = line.node.expression;
+        if (!t.isFunctionExpression(exp.callee) || !t.isIdentifier(exp.arguments[0]) || !t.isExpression(exp.arguments[1])) return null;
+
+        let hasSuperExpression = false;
+
+        line.traverse({
+          StringLiteral: (p) => {
+            if (p.node.value.includes('Super expression must either be null or a function')) {
+              hasSuperExpression = true;
+            }
+          },
+        });
+
+        return hasSuperExpression ? exp.arguments[1] : null;
+      }).find((line) => line != null);
+
       const methods = [];
 
       const constructor = this.createConstructor(path);
@@ -74,9 +95,9 @@ export default class BabelClassEvaluator extends Plugin {
       methods.push(...this.createMethods(path));
 
       if (varDeclar.parent.declarations.length === 1) {
-        varDeclar.parentPath.replaceWith(t.classDeclaration(t.identifier(className), undefined, t.classBody(methods)));
+        varDeclar.parentPath.replaceWith(t.classDeclaration(t.identifier(className), extendsId, t.classBody(methods)));
       } else {
-        varDeclar.parentPath.insertAfter(t.classDeclaration(t.identifier(className), undefined, t.classBody(methods)));
+        varDeclar.parentPath.insertAfter(t.classDeclaration(t.identifier(className), extendsId, t.classBody(methods)));
         varDeclar.remove();
       }
     });
@@ -90,6 +111,8 @@ export default class BabelClassEvaluator extends Plugin {
 
     const constructorFunction = firstParam.scope.getBinding(firstParam.node.name)?.path;
     if (!constructorFunction?.isFunctionDeclaration()) return null;
+
+    if (constructorFunction.node.body.body.length === 0) return null;
 
     return t.classMethod('constructor', t.identifier('constructor'), constructorFunction.node.params, constructorFunction.node.body);
   }

@@ -35,6 +35,8 @@ export interface CachedModule {
   npmModuleVarName?: string;
   isNpmModule: boolean;
   isPolyfill: boolean;
+  isStatic: boolean;
+  staticContent: string;
   ignored: boolean;
   previousRunChecksum: string;
   paramMappings: ParamMappings;

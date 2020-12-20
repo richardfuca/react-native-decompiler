@@ -18,6 +18,7 @@
 
 import { Visitor } from '@babel/traverse';
 import * as t from '@babel/types';
+import Module from '../../module';
 import { Plugin } from '../../plugin';
 
 /**
@@ -51,11 +52,21 @@ export default class RequireMapper extends Plugin {
           return;
         }
 
-        path.get('arguments')[0].replaceWith(t.stringLiteral(`${moduleDependency.isNpmModule ? '' : './'}${moduleDependency.moduleName}`));
+        path.get('arguments')[0].replaceWith(t.stringLiteral(this.generateModuleName(moduleDependency)));
         if (!varDeclar?.isVariableDeclarator()) return;
         if (!t.isIdentifier(varDeclar.node.id)) return;
         path.scope.rename(varDeclar.node.id.name, moduleDependency.npmModuleVarName || `module${moduleDependency.moduleId}`);
       },
     };
+  }
+
+  private generateModuleName(module: Module) {
+    if (module.isNpmModule) {
+      return module.moduleName;
+    }
+    if (module.isStatic && module) {
+      return `./${module.moduleName}.css`;
+    }
+    return `./${module.moduleName}`;
   }
 }

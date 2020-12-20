@@ -65,6 +65,10 @@ export default class Module {
   isNpmModule = false;
   /** If this is a polyfill */
   isPolyfill = false;
+  /** If this is a static content. You should also set the ignored flag */
+  isStatic = false;
+  /** If this is static content, what the content is */
+  staticContent = '';
   /** If the module should not be decompiled nor outputted */
   ignored = false;
   /** If the module failed to decompile */
@@ -148,6 +152,8 @@ export default class Module {
       ignored: this.ignored,
       isNpmModule: this.isNpmModule,
       isPolyfill: this.isPolyfill,
+      isStatic: this.isStatic,
+      staticContent: this.staticContent,
       moduleId: this.moduleId,
       moduleName: this.moduleName,
       moduleStrings: this.moduleStrings,

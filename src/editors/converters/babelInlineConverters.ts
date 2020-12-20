@@ -37,12 +37,11 @@ export default class BabelInlineConverters extends Plugin {
       },
       CallExpression: (nodePath) => {
         this.createClassFunctionInline(nodePath);
+        this.classCallCheckInline(nodePath);
+        this.assertThisInitalizedInline(nodePath);
       },
       VariableDeclarator: (nodePath) => {
         this.interopRequireDefaultVarInline(nodePath);
-      },
-      UnaryExpression: (nodePath) => {
-        this.classCallCheckInline(nodePath);
       },
     };
   }
@@ -130,10 +129,9 @@ export default class BabelInlineConverters extends Plugin {
     this.addTag('babel-createClass');
   }
 
-  private classCallCheckInline(path: NodePath<t.UnaryExpression>) {
-    if (path.node.operator !== '!' || !t.isCallExpression(path.node.argument)) return;
-    if (!t.isFunctionExpression(path.node.argument.callee) || path.node.argument.arguments.length !== 2) return;
-    if (!t.isThisExpression(path.node.argument.arguments[0]) || !t.isIdentifier(path.node.argument.arguments[1])) return;
+  private classCallCheckInline(path: NodePath<t.CallExpression>) {
+    if (!t.isFunctionExpression(path.node.callee) || path.node.arguments.length !== 2) return;
+    if (!t.isThisExpression(path.node.arguments[0]) || !t.isIdentifier(path.node.arguments[1])) return;
 
     let hasErrorString = false;
     path.traverse({
@@ -145,9 +143,35 @@ export default class BabelInlineConverters extends Plugin {
     });
     if (!hasErrorString) return;
 
+    const parent = path.find((p) => p.isExpressionStatement());
+    if (!parent) return;
+
     this.debugLog('removed inline babel classCallCheck function:');
     this.debugLog(this.debugPathToCode(path));
 
-    path.remove();
+    parent.remove();
+  }
+
+  private assertThisInitalizedInline(path: NodePath<t.CallExpression>) {
+    if (!t.isFunctionExpression(path.node.callee) || path.node.arguments.length !== 2) return;
+    if (!t.isThisExpression(path.node.arguments[0]) || !t.isCallExpression(path.node.arguments[1])) return;
+
+    let hasErrorString = false;
+    path.traverse({
+      StringLiteral: (stringPath) => {
+        if (stringPath.node.value === 'this hasn\'t been initialised - super() hasn\'t been called') {
+          hasErrorString = true;
+        }
+      },
+    });
+    if (!hasErrorString) return;
+
+    const parent = t.isReturnStatement(path.parent) ? path.parentPath : path.find((p) => p.isExpressionStatement());
+    if (!parent) return;
+
+    this.debugLog('removed inline babel assertThisInitalized function:');
+    this.debugLog(this.debugPathToCode(path));
+
+    parent.remove();
   }
 }

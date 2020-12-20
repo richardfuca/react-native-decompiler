@@ -153,12 +153,14 @@ async function start() {
       startTime = performance.now();
       console.log('Tagging...');
       progressBar.start(0, nonIgnoredModules.length);
-      nonIgnoredModules.forEach((module) => {
-        const router = new Router(taggerList, module, modules, argValues);
-        router.parse(module);
 
-        progressBar.increment();
-      });
+      const taggerRouters = nonIgnoredModules.map((m) => new Router(taggerList, m, modules, argValues));
+      for (let pass = 1; pass <= taggerRouters[0].maxPass; pass += 1) {
+        taggerRouters.forEach((r) => r.runPass(pass));
+        if (pass === taggerRouters[0].maxPass) {
+          progressBar.increment();
+        }
+      }
 
       progressBar.stop();
       if (argValues.performance) {
@@ -214,15 +216,19 @@ async function start() {
       startTime = performance.now();
       console.log('Decompiling...');
       progressBar.start(0, nonIgnoredModules.length);
-      nonIgnoredModules.forEach((module) => {
-        const editorRouter = new Router(editorList, module, modules, argValues);
-        editorRouter.parse(module);
 
-        const decompilerRouter = new Router(decompilerList, module, modules, argValues);
-        decompilerRouter.parse(module);
+      const editorRouters = nonIgnoredModules.map((m) => new Router(editorList, m, modules, argValues));
+      for (let pass = 1; pass <= editorRouters[0].maxPass; pass += 1) {
+        editorRouters.forEach((r) => r.runPass(pass));
+      }
 
-        progressBar.increment();
-      });
+      const decompilerRouter = nonIgnoredModules.map((m) => new Router(decompilerList, m, modules, argValues));
+      for (let pass = 1; pass <= decompilerRouter[0].maxPass; pass += 1) {
+        decompilerRouter.forEach((r) => r.runPass(pass));
+        if (pass === decompilerRouter[0].maxPass) {
+          progressBar.increment();
+        }
+      }
 
       progressBar.stop();
       if (argValues.performance) {
@@ -264,7 +270,7 @@ async function start() {
       }
       if (!argValues.noPrettier) {
         try {
-          returnValue.code = prettier.format(returnValue.code, { parser: 'babel', singleQuote: true, printWidth: 150 });
+          returnValue.code = prettier.format(returnValue.code, { parser: 'babel', singleQuote: true, printWidth: 180 });
         } catch (e) {}
       }
       progressBar.increment();
@@ -284,6 +290,13 @@ async function start() {
         fsExtra.writeFileSync(filePath, file.code);
       }
       progressBar.increment();
+    });
+    modules.forEach((m) => {
+      if (!m.isStatic) return;
+      const filePath = `${argValues.out}/${m.moduleId}.${m.tags.includes('css') ? 'css' : '?'}`;
+      if (!fsExtra.existsSync(filePath) || fsExtra.readFileSync(filePath, 'utf-8') !== m.staticContent) {
+        fsExtra.writeFileSync(filePath, m.staticContent);
+      }
     });
 
     progressBar.stop();

@@ -32,6 +32,7 @@ const eslintConfig: Linter.Config = {
   },
   plugins: [
     'react',
+    'import',
   ],
   rules: {
     'one-var': ['error', 'never'],
@@ -94,7 +95,7 @@ const eslintConfig: Linter.Config = {
       named: 'never',
       asyncArrow: 'always',
     }],
-    curly: ['error', 'multi-line', 'consistent'],
+    curly: ['error', 'all'],
     'block-spacing': ['error', 'always'],
     'brace-style': ['error', '1tbs', { allowSingleLine: true }],
     yoda: 'error',
@@ -108,6 +109,8 @@ const eslintConfig: Linter.Config = {
     'react/jsx-one-expression-per-line': 'error',
     'no-undef-init': 'error',
     'prefer-object-spread': 'error',
+    'import/order': ['error', { groups: [['builtin', 'external', 'internal']] }],
+    'import/newline-after-import': 'error',
   },
 };
 

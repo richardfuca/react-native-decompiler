@@ -1,4 +1,3 @@
-import PassthroughModuleRemapper from './remappers/passthroughModuleRemapper';
 /**
   React Native Decompiler
   Copyright (C) 2020 Richard Fu and contributors
@@ -17,11 +16,13 @@ import PassthroughModuleRemapper from './remappers/passthroughModuleRemapper';
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import PassthroughModuleRemapper from './remappers/passthroughModuleRemapper';
 import SimpleModuleFinder from './npmModuleFinders/simpleModuleFinder';
 import BabelModuleFinder from './npmModuleFinders/babelModuleFinder';
 import { PluginConstructor } from '../plugin';
 import EmptyIgnorer from './vanilla/emptyIgnorer';
 import PolyfillModuleFinder from './npmModuleFinders/polyfillModuleFinder';
+import CssFinder from './static/cssFinder';
 
 const taggerList: PluginConstructor[] = [
   // pass 1
@@ -31,6 +32,7 @@ const taggerList: PluginConstructor[] = [
   BabelModuleFinder,
   // pass 2
   PassthroughModuleRemapper,
+  CssFinder,
 ];
 
 export default taggerList;

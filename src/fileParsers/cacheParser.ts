@@ -88,6 +88,8 @@ export default class CacheParser implements FileParser {
             module.ignored = cached.ignored;
             module.isNpmModule = cached.isNpmModule;
             module.isPolyfill = cached.isPolyfill;
+            module.isStatic = cached.isStatic;
+            module.staticContent = cached.staticContent;
             module.moduleName = cached.moduleName;
             module.npmModuleVarName = cached.npmModuleVarName;
           }
