@@ -33,7 +33,7 @@ import CmdArgs from '../../../interfaces/cmdArgs';
  * Cleans up `@babel/runtime/helpers/toConsumableArray` usage
  */
 export default class ToConsumableArrayCleaner extends Plugin {
-  readonly pass = 2;
+  readonly pass = 3;
 
   private moduleUsed: boolean;
   private moduleVarPath?: NodePath<VariableDeclarator>;

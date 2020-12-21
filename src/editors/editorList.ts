@@ -16,7 +16,6 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import RequiresAtTop from './variables/requiresAtTop';
 import CommaOperatorUnwrapper from './unwrappers/commaOperatorUnwrapper';
 import EsModuleCleaner from './cleaners/esModuleCleaner';
 import { PluginConstructor } from '../plugin';
@@ -27,7 +26,6 @@ const editorList: PluginConstructor[] = [
   CommaOperatorUnwrapper,
   // pass 2
   BabelInlineConverters,
-  RequiresAtTop,
   EsModuleCleaner,
   NoUndefinedExport,
 ];

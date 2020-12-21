@@ -30,6 +30,7 @@ module.exports = {
         'private-constructors',
         'protected-constructors',
       ]
-    }]
+    }],
+    "@typescript-eslint/no-unused-vars": "off",
   },
 };

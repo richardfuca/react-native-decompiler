@@ -16,7 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { expressionStatement, Identifier, isIdentifier } from '@babel/types';
+import * as t from '@babel/types';
 import { Visitor } from '@babel/traverse';
 import { Plugin } from '../../plugin';
 
@@ -37,8 +37,8 @@ export default class CommaOperatorUnwrapper extends Plugin {
         this.debugLog('ReturnStatement:');
         this.debugLog(this.debugPathToCode(path));
 
+        path.insertBefore(this.sequenceExpressionToStatements(expressions.slice(0, -1).map((e) => e.node)));
         for (let i = 0; i < expressions.length - 1; i += 1) {
-          path.insertBefore(expressionStatement(expressions[i].node));
           expressions[i].remove();
         }
         path.get('argument').replaceWith(expressions[expressions.length - 1]);
@@ -51,9 +51,9 @@ export default class CommaOperatorUnwrapper extends Plugin {
 
           const validExpressions = init.get('expressions').filter((expression) => {
             if (!expression.isAssignmentExpression()) return true;
-            if (!isIdentifier(expression.node.left)) return true;
+            if (!t.isIdentifier(expression.node.left)) return true;
 
-            const matchingDeclaration = declarations.find((declar) => isIdentifier(declar.node.id) && declar.node.id.name === (<Identifier>expression.node.left).name);
+            const matchingDeclaration = declarations.find((declar) => t.isIdentifier(declar.node.id) && declar.node.id.name === (<t.Identifier>expression.node.left).name);
             if (!matchingDeclaration) return true;
 
             matchingDeclaration.get('init').replaceWith(expression.get('right').node);
@@ -61,7 +61,7 @@ export default class CommaOperatorUnwrapper extends Plugin {
             return false;
           });
 
-          path.insertBefore(validExpressions.slice(0, -1).map((exp) => exp.node));
+          path.insertBefore(this.sequenceExpressionToStatements(validExpressions.slice(0, -1).map((e) => e.node)));
           for (let i = 0; i < validExpressions.length - 1; i += 1) {
             validExpressions[i].remove();
           }
@@ -75,8 +75,17 @@ export default class CommaOperatorUnwrapper extends Plugin {
         this.debugLog('ExpressionStatement:');
         this.debugLog(this.debugPathToCode(path));
 
-        path.replaceWithMultiple(expression.get('expressions').map((exp) => expressionStatement(exp.node)));
+        path.replaceWithMultiple(this.sequenceExpressionToStatements(expression.node.expressions));
       },
     };
+  }
+
+  private sequenceExpressionToStatements(expressions: t.Expression[]): t.Statement[] {
+    const validExpressions = expressions.filter((exp) => {
+      if (t.isMemberExpression(exp) && t.isIdentifier(exp.object) && t.isLiteral(exp.property)) return false;
+      if (t.isMemberExpression(exp) && t.isIdentifier(exp.object) && t.isIdentifier(exp.property)) return false;
+      return true;
+    });
+    return validExpressions.map((exp) => t.expressionStatement(exp));
   }
 }

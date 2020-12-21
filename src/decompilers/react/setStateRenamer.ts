@@ -30,7 +30,7 @@ import { Plugin } from '../../plugin';
  */
 export default class SetStateRenamer extends Plugin {
   // has to run after array destructuring
-  readonly pass = 3;
+  readonly pass = 4;
 
   getVisitor(): Visitor {
     return {

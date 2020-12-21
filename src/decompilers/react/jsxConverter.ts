@@ -50,7 +50,7 @@ import { Plugin } from '../../plugin';
  * Converts React.createElement to JSX
  */
 export default class JSXConverter extends Plugin {
-  readonly pass = 2;
+  readonly pass = 3;
   name = 'JSXConverter';
 
   getVisitor(): Visitor {

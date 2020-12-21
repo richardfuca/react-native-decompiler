@@ -41,7 +41,15 @@ export default class ImportsToEs6 extends Plugin {
         const varName = varIdentifier.name;
 
         if (moduleDependency.tags.includes('defaultExportOnly') || !moduleDependency.tags.includes('__esModule')) {
-          varDeclar.parentPath.insertBefore(t.importDeclaration([t.importDefaultSpecifier(varIdentifier)], path.node.arguments[0]));
+          this.bindingTraverse(varDeclar.scope.bindings[varName], varName, {
+            MemberExpression: (bPath) => {
+              if (t.isIdentifier(bPath.node.object) && t.isIdentifier(bPath.node.property) && bPath.node.object.name === varName && bPath.node.property.name === 'default') {
+                bPath.replaceWith(bPath.node.object);
+              }
+            },
+          });
+          const [newPath] = varDeclar.parentPath.insertBefore(t.importDeclaration([t.importDefaultSpecifier(varIdentifier)], path.node.arguments[0]));
+          newPath.scope.registerBinding('module', newPath);
           varDeclar.remove();
           return;
         }
@@ -57,7 +65,7 @@ export default class ImportsToEs6 extends Plugin {
             }
           },
         });
-        if (imports.size < 1 || imports.size > 5) return;
+        if (imports.size < 1) return;
 
         memberExpressions.forEach((bPath) => {
           if (t.isIdentifier(bPath.node.property) && bPath.node.property.name === 'default') {

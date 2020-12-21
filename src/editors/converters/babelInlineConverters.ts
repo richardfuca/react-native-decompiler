@@ -42,6 +42,7 @@ export default class BabelInlineConverters extends Plugin {
       },
       VariableDeclarator: (nodePath) => {
         this.interopRequireDefaultVarInline(nodePath);
+        this.slicedToArrayFunction(nodePath);
       },
     };
   }
@@ -96,10 +97,9 @@ export default class BabelInlineConverters extends Plugin {
     this.debugLog('removed inline babel interopRequireDefault inline:');
     this.debugLog(this.debugPathToCode(path));
 
-    const oldBinding = path.scope.bindings[moduleSourcePath.node.id.name];
-    path.scope.rename(node.id.name, moduleSourcePath.node.id.name);
-    path.remove();
-    path.scope.bindings[moduleSourcePath.node.id.name] = oldBinding;
+    this.mergeBindings(path, node.id.name, moduleSourcePath.node.id.name);
+
+    path.scope.bindings[test.left.left.name].path.remove();
   }
 
   private createClassFunctionInline(path: NodePath<t.CallExpression>) {
@@ -173,5 +173,24 @@ export default class BabelInlineConverters extends Plugin {
     this.debugLog(this.debugPathToCode(path));
 
     parent.remove();
+  }
+
+  private slicedToArrayFunction(path: NodePath<t.VariableDeclarator>) {
+    if (path.removed || !t.isCallExpression(path.node.init) || path.node.init.arguments.length !== 0) return;
+
+    let hasErrorString = false;
+    path.traverse({
+      StringLiteral: (stringPath) => {
+        if (stringPath.node.value === 'Invalid attempt to destructure non-iterable instance') {
+          hasErrorString = true;
+        }
+      },
+    });
+    if (!hasErrorString) return;
+
+    this.debugLog('replace var incline babel slicedToArray function:');
+    this.debugLog(this.debugPathToCode(path));
+
+    path.get('init').replaceWith(t.callExpression(t.identifier('require'), [t.stringLiteral('@babel/runtime/helpers/slicedToArray')]));
   }
 }

@@ -25,7 +25,7 @@ import ArrayMap from '../../../util/arrayMap';
  * Evaluates Babel class structures
  */
 export default class BabelClassEvaluator extends Plugin {
-  readonly pass = 2;
+  readonly pass = 3;
   private classCreateName?: string;
   private classCreatePath?: NodePath<t.VariableDeclarator>;
   private callExpressions: ArrayMap<string, NodePath<t.CallExpression>> = new ArrayMap();
@@ -37,6 +37,13 @@ export default class BabelClassEvaluator extends Plugin {
         if (!t.isIdentifier(path.node.id)) return;
         if (this.variableIsForDependency(path, '@babel/runtime/helpers/createClass')) {
           this.classCreateName = path.node.id.name;
+          path.remove();
+        }
+      },
+      ImportDeclaration: (path) => {
+        if (!t.isImportDefaultSpecifier(path.node.specifiers[0]) || !t.isIdentifier(path.node.specifiers[0].local)) return;
+        if (this.variableIsForDependency(path, '@babel/runtime/helpers/createClass')) {
+          this.classCreateName = path.node.specifiers[0].local.name;
           path.remove();
         }
       },

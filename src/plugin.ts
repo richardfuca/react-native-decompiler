@@ -58,8 +58,9 @@ export abstract class Plugin {
     return `react-native-decompiler:${this.name ?? 'plugin'}-${this.module.moduleId}`;
   }
 
-  protected debugLog(val: unknown): void {
-    debug(this.getDebugName())(val);
+  protected debugLog(...args: unknown[]): void {
+    if (args.length === 0) throw new Error('no args');
+    debug(this.getDebugName())(...args);
   }
 
   /**
@@ -88,16 +89,24 @@ export abstract class Plugin {
     this.module.tags.push(tag);
   }
 
-  protected variableIsForDependency(path: NodePath<t.VariableDeclarator>, dep: string | string[]): boolean {
+  protected variableIsForDependency(path: NodePath<t.VariableDeclarator> | NodePath<t.ImportDeclaration>, dep: string | string[]): boolean {
     const depArray = dep instanceof Array ? dep : [dep];
 
-    const callExpression = path.get('init');
-    if (!callExpression.isCallExpression()) return false;
+    if (path.isVariableDeclarator()) {
+      const callExpression = path.get('init');
+      if (!callExpression.isCallExpression()) return false;
 
-    const requireValue = t.isStringLiteral(callExpression.node.arguments[0]) ? callExpression.node.arguments[0].value : null;
-    const dependencyName = this.getModuleDependency(callExpression)?.moduleName ?? requireValue ?? '';
+      const requireValue = t.isStringLiteral(callExpression.node.arguments[0]) ? callExpression.node.arguments[0].value : null;
+      const dependencyName = this.getModuleDependency(callExpression)?.moduleName ?? requireValue ?? '';
 
-    return depArray.includes(dependencyName);
+      return depArray.includes(dependencyName);
+    }
+    if (path.isImportDeclaration()) {
+      if (!t.isStringLiteral(path.node.source)) return false;
+
+      return depArray.includes(path.node.source.value);
+    }
+    return false;
   }
 
   protected getModuleDependency(path: NodePath<t.CallExpression>): Module | null {
@@ -124,6 +133,12 @@ export abstract class Plugin {
     return null;
   }
 
+  /**
+   * Does a visit of all nodes within the scope of the giving binding
+   * @param binding The binding to set traversing bounds
+   * @param varName The variable name for the binding
+   * @param visitor A visitor object
+   */
   protected bindingTraverse(binding: Binding, varName: string, visitor: Visitor): void {
     binding.scope.traverse(binding.scope.block, {
       ...visitor,
@@ -133,5 +148,18 @@ export abstract class Plugin {
         }
       },
     });
+  }
+
+  /**
+   * Merges the given variable into another
+   * @param path The path that declares the variable. This path will be deleted afterwards!
+   * @param from The name of the variable to be removed
+   * @param to The name of the variable to merge into
+   */
+  protected mergeBindings(path: NodePath, from: string, to: string): void {
+    const oldBinding = path.scope.bindings[to];
+    path.scope.rename(from, to);
+    path.remove();
+    path.scope.bindings[to] = oldBinding;
   }
 }

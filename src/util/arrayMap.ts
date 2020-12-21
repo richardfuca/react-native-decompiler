@@ -69,7 +69,7 @@ export default class ArrayMap<K, V> implements Map<K, V[]> {
   delete(key: K): boolean {
     return this.map.delete(key);
   }
-  forEach(callbackfn: (value: V[], key: K, map: Map<K, V[]>) => void, thisArg?: any): void {
+  forEach(callbackfn: (value: V[], key: K, map: Map<K, V[]>) => void, thisArg?: unknown): void {
     this.map.forEach(callbackfn, thisArg);
   }
   set(key: K, value: V[]): this {

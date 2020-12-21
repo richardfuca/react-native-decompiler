@@ -111,6 +111,7 @@ const eslintConfig: Linter.Config = {
     'prefer-object-spread': 'error',
     'import/order': ['error', { groups: [['builtin', 'external', 'internal']] }],
     'import/newline-after-import': 'error',
+    'import/first': 'error',
   },
 };
 

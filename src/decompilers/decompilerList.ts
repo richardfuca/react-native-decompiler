@@ -46,14 +46,15 @@ const decompilerList: PluginConstructor[] = [
   DefaultInteropEvaluator,
   ArrayDestructureEvaluator,
   Spreadifier,
-  // pass 2
-  ToConsumableArrayCleaner,
   UselessCommaOperatorCleaner,
-  BabelClassEvaluator,
-  JSXConverter,
+  // pass 2
   ExportsToEs6,
   ImportsToEs6,
   // pass 3
+  ToConsumableArrayCleaner,
+  BabelClassEvaluator,
+  JSXConverter,
+  // pass 4
   SetStateRenamer,
 ];
 
