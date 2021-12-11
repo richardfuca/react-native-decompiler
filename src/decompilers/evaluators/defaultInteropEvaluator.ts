@@ -22,8 +22,6 @@ import {
   isIdentifier,
 } from '@babel/types';
 import { Plugin } from '../../plugin';
-import Module from '../../module';
-import CmdArgs from '../../interfaces/cmdArgs';
 
 /**
  * Evaluates babel default interops

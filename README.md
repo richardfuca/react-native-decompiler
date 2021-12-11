@@ -1,6 +1,7 @@
 # React Native Decompiler [ALPHA]
 
-**DOES NOT SUPPORT ENCRYPTED/BINARY (FACEBOOK, INSTAGRAM) BUNDLES**
+**DOES NOT SUPPORT HERMES/BINARY (FACEBOOK, INSTAGRAM) REACT NATIVE BUNDLES**
+**DOES NOT SUPPORT WEBPACK V5 BUNDLES**
 
 Decompiles React Native `index.android.bundle` JS files. Webpack files too!
 
@@ -9,10 +10,9 @@ Also tries to remove some compilation artifacts (via internal plugins, ESLint, a
 # Usage
 
 1. Download
-2. `npm i`
-3. Build or use ts-node (your choice).
+2. `npm start`
 
-Example command: `node ./out/main.js -i index.android.bundle -o ./output`, `ts-node ./src/main.js -i index.android.bundle -o ./output`
+Example command: `npm start -i index.android.bundle -o ./output`
 
 Command params:
 - `-i` (required) - input file/folder
@@ -34,8 +34,8 @@ Command params:
 The following input formats are currently supported:
 - A single `index.android.bundle` file that contains all modules (most cases for React Native)
 - A folder containing React Native modules (usually called `js-modules`) in "unbundled" apps
-- A single Webpack entrypoint bundle file (entrypoint bundles begin with `!function(e)`, chunked bundles start with `window.webpackJsonp`)
-- A folder containg Webpack chunks, where at least one file is the entrypoint
+- A single Webpack V4 (V5 not supported) entrypoint bundle file (entrypoint bundles begin with `!function(e)`, chunked bundles start with `window.webpackJsonp`).
+- A folder containg Webpack V4 (V5 not supported) chunks, where at least one file is the entrypoint
 
 # Extending
 
