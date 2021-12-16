@@ -10,9 +10,9 @@ Also tries to remove some compilation artifacts (via internal plugins, ESLint, a
 # Usage
 
 1. Download
-2. `npm start`
+2. `npm start -- <ARGUMENTS>` (the `--` is very important!)
 
-Example command: `npm start -i index.android.bundle -o ./output`
+Example command: `npm start -- -i index.android.bundle -o ./output`
 
 Command params:
 - `-i` (required) - input file/folder
