@@ -22,7 +22,7 @@ Command params:
 - `-v` - verbose flag, does not include debug logging (use `DEBUG=react-native-decompiler:*` env flag for that)
 - `--es6` - attempts to decompile to ES6 module syntax.
 - `--noEslint` - does not run ESLint after doing decompilation
-- `--prettier` - does not run Prettier after doing decompilation
+- `--noPrettier` - does not run Prettier after doing decompilation
 - `--unpackOnly` - only unpacks the app with no other adjustments
 - `--decompileIgnored` - decompile ignored modules (modules are generally ignored if they are flagged as an NPM module)
 - `--agressiveCache` - skips some cache checks at the expense of possible cache desync
@@ -36,6 +36,14 @@ The following input formats are currently supported:
 - A folder containing React Native modules (usually called `js-modules`) in "unbundled" apps
 - A single Webpack V4 (V5 not supported) entrypoint bundle file (entrypoint bundles begin with `!function(e)`, chunked bundles start with `window.webpackJsonp`).
 - A folder containg Webpack V4 (V5 not supported) chunks, where at least one file is the entrypoint
+
+# Troubleshooting
+
+## Out of memory errors
+
+Some files are big enough that Node will run out of memory. You can try disabling various features that might be memory intensive. For example, try the `-e`, `--noEslint`, `--noPrettier`, `--unpackOnly` flags.
+
+Another option is to give Node more memory. Here is an example command (run this instead of `npm start`): `node -r ts-node/register --max-old-space-size=<MEMORY IN MB>  ./src/main.ts <ARGUMENTS>`.
 
 # Extending
 
