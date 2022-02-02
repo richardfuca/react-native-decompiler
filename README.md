@@ -1,7 +1,10 @@
 # React Native Decompiler [ALPHA]
 
 **DOES NOT SUPPORT HERMES/BINARY (FACEBOOK, INSTAGRAM) REACT NATIVE BUNDLES**
+
 **DOES NOT SUPPORT WEBPACK V5 BUNDLES**
+
+**Note that the NPM package `react-native-decompiler` while based off this repo is maintained by someone else.**
 
 Decompiles React Native `index.android.bundle` JS files. Webpack files too!
 
